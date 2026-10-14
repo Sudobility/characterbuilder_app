@@ -1,0 +1,22 @@
+/** Thin barrel over the sudobility design-system component kit used by this app. */
+export {
+  cn,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardFooter,
+  Heading,
+  Text,
+  Badge,
+  Spinner,
+  Label,
+  Checkbox,
+  Input,
+  TextArea,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@sudobility/components';
