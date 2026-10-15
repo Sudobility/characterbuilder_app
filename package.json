@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@sudobility/building_blocks": "^0.0.325",
-    "@sudobility/characterbuilder_client": "link:@sudobility/characterbuilder_client",
-    "@sudobility/characterbuilder_lib": "link:@sudobility/characterbuilder_lib",
-    "@sudobility/characterbuilder_types": "link:@sudobility/characterbuilder_types",
+    "@sudobility/characterbuilder_client": "^0.1.0",
+    "@sudobility/characterbuilder_lib": "^0.1.0",
+    "@sudobility/characterbuilder_types": "^0.1.0",
     "@sudobility/components": "^5.3.31",
     "@sudobility/design": "^1.1.58",
     "@sudobility/types": "^1.9.68",
