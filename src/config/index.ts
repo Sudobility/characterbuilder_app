@@ -1,7 +1,7 @@
 /** Environment-driven config. All public values come from Vite `VITE_*` vars. */
 
 export const API_URL = (
-  import.meta.env.VITE_API_URL ?? 'http://localhost:8040'
+  import.meta.env.VITE_API_URL ?? 'http://localhost:8039'
 ).replace(/\/+$/, '');
 
 export const AUTH_TEST_MODE = import.meta.env.VITE_AUTH_TEST_MODE === '1';

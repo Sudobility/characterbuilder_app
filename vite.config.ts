@@ -22,5 +22,5 @@ export default defineConfig({
     ],
     dedupe: ['react', 'react-dom', '@tanstack/react-query', 'zustand'],
   },
-  server: { port: 5173 },
+  server: { port: 5145 },
 });
