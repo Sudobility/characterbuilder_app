@@ -4,6 +4,7 @@ import {
   useCharacter,
   useCreateCharacter,
   useGenerate,
+  useGeneration,
   useUpdateCharacter,
 } from '@sudobility/characterbuilder_client';
 import {
@@ -13,10 +14,11 @@ import {
 } from '@sudobility/characterbuilder_lib';
 import {
   EXPRESSIONS,
+  HEALTH_STATES,
   IMAGE_SIZES,
   SHOTS,
+  type Demographics,
   type FaceSpec,
-  type Generation,
 } from '@sudobility/characterbuilder_types';
 import { isInsufficientCredits } from '@sudobility/characterbuilder_client';
 import { FaceSpecForm } from '../components/FaceSpecForm';
@@ -37,7 +39,9 @@ import {
   Text,
 } from '../ui';
 
-const COUNTS = ['1', '2', '3', '4'];
+const COUNTS = Array.from({ length: 10 }, (_, i) => String(i + 1));
+// 'auto' = let the caster decide (Radix Select forbids an empty-string value).
+const HEALTH_OPTIONS = ['auto', ...HEALTH_STATES];
 
 function ParamSelect(props: {
   label: string;
@@ -75,12 +79,19 @@ export function EditorPage() {
   const meta = useDraft((s) => s.meta);
   const characterId = useDraft((s) => s.characterId);
 
-  const [result, setResult] = useState<Generation | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [health, setHealth] = useState<string>('auto');
+  const [subPopulation, setSubPopulation] = useState<string>('');
 
   const generate = useGenerate();
   const create = useCreateCharacter();
   const update = useUpdateCharacter();
+
+  // Generation is an async job: poll the returned id until it finishes.
+  const { data: job } = useGeneration(jobId ?? undefined);
+  const jobActive =
+    !!jobId && job?.status !== 'succeeded' && job?.status !== 'failed';
 
   // Sync the draft to the route: load a saved character, or reset for /new.
   useEffect(() => {
@@ -103,10 +114,19 @@ export function EditorPage() {
 
   const onGenerate = () => {
     setError(null);
+    setJobId(null);
+    const demographics: Demographics = {};
+    if (health && health !== 'auto')
+      demographics.health = health as Demographics['health'];
+    if (subPopulation.trim()) demographics.subPopulation = subPopulation.trim();
     generate.mutate(
-      { spec, params },
       {
-        onSuccess: (g) => setResult(g),
+        spec,
+        params,
+        ...(Object.keys(demographics).length > 0 ? { demographics } : {}),
+      },
+      {
+        onSuccess: (g) => setJobId(g.id),
         onError: (e) =>
           setError(
             isInsufficientCredits(e)
@@ -118,6 +138,11 @@ export function EditorPage() {
       }
     );
   };
+
+  // Surface a failed job's error.
+  useEffect(() => {
+    if (job?.status === 'failed') setError(job.error ?? 'Generation failed');
+  }, [job?.status, job?.error]);
 
   const onSave = () => {
     const name = meta.name.trim() || 'Untitled';
@@ -211,6 +236,25 @@ export function EditorPage() {
                 />
               </div>
 
+              <div className="flex flex-wrap gap-3">
+                <ParamSelect
+                  label="Health"
+                  value={health}
+                  options={HEALTH_OPTIONS}
+                  onChange={setHealth}
+                />
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="subpop">Sub-population</Label>
+                  <Input
+                    id="subpop"
+                    className="w-56"
+                    value={subPopulation}
+                    placeholder="e.g. Korean; Yoruba"
+                    onChange={(e) => setSubPopulation(e.target.value)}
+                  />
+                </div>
+              </div>
+
               <div className="rounded-lg bg-theme-bg-secondary p-3">
                 <Text as="span" size="xs" className="text-theme-text-secondary">
                   Prompt preview
@@ -223,12 +267,16 @@ export function EditorPage() {
               <div className="flex gap-2">
                 <Button
                   variant="primary"
-                  disabled={generate.isPending}
+                  disabled={generate.isPending || jobActive}
                   onClick={onGenerate}
                 >
                   {generate.isPending
-                    ? 'Generating…'
-                    : `Generate (${count} credit${count > 1 ? 's' : ''})`}
+                    ? 'Enqueuing…'
+                    : jobActive
+                      ? job?.status === 'running'
+                        ? 'Rendering…'
+                        : 'Queued…'
+                      : `Generate (${count} credit${count > 1 ? 's' : ''})`}
                 </Button>
                 <Button
                   variant="secondary"
@@ -247,7 +295,7 @@ export function EditorPage() {
           </CardContent>
         </Card>
 
-        {result && result.images.length > 0 && (
+        {jobId && (
           <Card>
             <CardHeader>
               <Heading level={3} size="lg">
@@ -255,11 +303,26 @@ export function EditorPage() {
               </Heading>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {result.images.map((img) => (
-                  <ImageTile key={img.id} imageId={img.id} alt={meta.name} />
-                ))}
-              </div>
+              {jobActive && (
+                <Text as="p" size="sm" className="text-theme-text-secondary">
+                  {job?.status === 'running'
+                    ? `Rendering ${count} image${count > 1 ? 's' : ''}…`
+                    : 'Queued…'}{' '}
+                  This can take a while.
+                </Text>
+              )}
+              {job && job.images.length > 0 && (
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  {job.images.map((img) => (
+                    <ImageTile key={img.id} imageId={img.id} alt={meta.name} />
+                  ))}
+                </div>
+              )}
+              {job?.status === 'failed' && (
+                <Text as="p" size="sm" className="text-red-500">
+                  {job.error ?? 'Generation failed'}
+                </Text>
+              )}
             </CardContent>
           </Card>
         )}
