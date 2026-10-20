@@ -1,68 +1,84 @@
-import { useGenerations } from '@sudobility/characterbuilder_client';
+import { useMemo, useState } from 'react';
+import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
 import { ImageTile } from '../components/ImageTile';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  Heading,
-  Spinner,
-  Text,
-} from '../ui';
+import { ImageLightbox } from '../components/ImageLightbox';
+import { Heading, Spinner, Text } from '../ui';
 
-export function GalleryPage() {
+interface GalleryImage {
+  imageId: string;
+  characterId: string | null;
+  role: string | null;
+}
+
+/**
+ * A single grid of every generated image. Clicking a tile opens the full-res
+ * lightbox, which links back to the image's character. Embedded with a
+ * `characterId` it shows just that character's images (the "character → its
+ * images" view).
+ */
+export function GalleryPage({
+  characterId,
+  title = 'Gallery',
+}: {
+  characterId?: string;
+  title?: string;
+} = {}) {
   const { data, isLoading } = useGenerations();
+  const { data: chars } = useCharacters();
+
+  const nameById = useMemo(() => {
+    const m = new Map<string, string>();
+    chars?.items.forEach((c) => m.set(c.id, c.name));
+    return m;
+  }, [chars]);
+
+  const images = useMemo<GalleryImage[]>(() => {
+    const out: GalleryImage[] = [];
+    for (const g of data?.items ?? []) {
+      if (characterId && g.characterId !== characterId) continue;
+      for (const img of g.images) {
+        out.push({ imageId: img.id, characterId: g.characterId, role: img.role ?? null });
+      }
+    }
+    return out;
+  }, [data, characterId]);
+
+  const [active, setActive] = useState<GalleryImage | null>(null);
 
   return (
     <div className="flex flex-col gap-4">
-      <Heading level={1} size="2xl">
-        Gallery
+      <Heading level={characterId ? 2 : 1} size={characterId ? 'xl' : '2xl'}>
+        {title}
       </Heading>
+
       {isLoading ? (
         <Spinner size="large" />
-      ) : !data || data.items.length === 0 ? (
+      ) : images.length === 0 ? (
         <Text as="p" className="text-theme-text-secondary">
-          No generations yet.
+          {characterId ? 'No images for this character yet.' : 'No generated images yet.'}
         </Text>
       ) : (
-        data.items.map((gen) => {
-          const active = gen.status === 'pending' || gen.status === 'running';
-          return (
-            <Card key={gen.id}>
-              <CardHeader>
-                <Text as="span" size="sm" className="text-theme-text-secondary">
-                  {new Date(gen.createdAt).toLocaleString()} ·{' '}
-                  <span className="uppercase">{gen.status}</span> ·{' '}
-                  {gen.images.length} image{gen.images.length === 1 ? '' : 's'} ·{' '}
-                  {gen.creditsSpent} credit{gen.creditsSpent === 1 ? '' : 's'}
-                </Text>
-              </CardHeader>
-              <CardContent>
-                {active && (
-                  <Text as="p" size="sm" className="text-theme-text-secondary">
-                    Working… this generation is still rendering.
-                  </Text>
-                )}
-                {gen.status === 'failed' && (
-                  <Text as="p" size="sm" className="text-red-500">
-                    {gen.error ?? 'Generation failed'}
-                  </Text>
-                )}
-                {gen.images.length > 0 && (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {gen.images.map((img) => (
-                      <ImageTile key={img.id} imageId={img.id} alt="generation" />
-                    ))}
-                  </div>
-                )}
-                {gen.prompt && (
-                  <Text as="p" size="xs" className="mt-2 text-theme-text-secondary">
-                    {gen.prompt}
-                  </Text>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {images.map((img) => (
+            <ImageTile
+              key={img.imageId}
+              imageId={img.imageId}
+              alt={img.role ?? 'generation'}
+              label={img.role ?? undefined}
+              onClick={() => setActive(img)}
+            />
+          ))}
+        </div>
+      )}
+
+      {active && (
+        <ImageLightbox
+          imageId={active.imageId}
+          characterId={active.characterId}
+          characterName={active.characterId ? (nameById.get(active.characterId) ?? null) : null}
+          role={active.role}
+          onClose={() => setActive(null)}
+        />
       )}
     </div>
   );

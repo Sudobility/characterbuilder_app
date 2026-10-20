@@ -1,7 +1,9 @@
 /** Thin barrel over the sudobility design-system component kit used by this app. */
 export {
   cn,
+  Avatar,
   Button,
+  Dropdown,
   Card,
   CardContent,
   CardHeader,

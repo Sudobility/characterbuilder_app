@@ -8,12 +8,15 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signOut as fbSignOut,
   type User,
 } from 'firebase/auth';
-import { AUTH_TEST_MODE } from '../config';
+import { AUTH_TEST_MODE, firebaseConfigured } from '../config';
 import { getFirebaseAuth, googleProvider } from './firebase';
 
 export interface AuthUser {
@@ -25,7 +28,16 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
+  /** Google sign-in is offered — Firebase is configured. */
+  hasGoogle: boolean;
+  /** Email/password sign-in, sign-up and reset are offered — Firebase is configured. */
+  hasEmailPassword: boolean;
+  /** The dev email-only bypass is offered — `VITE_AUTH_TEST_MODE=1`. */
+  hasDevAuth: boolean;
   signInGoogle(): Promise<void>;
+  signInEmail(email: string, password: string): Promise<void>;
+  signUpEmail(email: string, password: string): Promise<void>;
+  sendPasswordReset(email: string): Promise<void>;
   signInDev(email: string): void;
   signOut(): Promise<void>;
   /** Bearer token for the API: a Firebase ID token, or a `dev:uid:email` token. */
@@ -57,8 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     return onAuthStateChanged(auth, (u: User | null) => {
+      // A real Firebase sign-in wins; with none, fall back to the dev user if
+      // one is set. This is why `VITE_AUTH_TEST_MODE=1` keeps a working dev
+      // login *even when Firebase is also configured* — without this fallback
+      // the dev bypass would be inert whenever Firebase is set up.
       setUser(
-        u ? { uid: u.uid, email: u.email, displayName: u.displayName } : null
+        u ? { uid: u.uid, email: u.email, displayName: u.displayName } : devUser
       );
       setLoading(false);
     });
@@ -68,6 +84,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const auth = getFirebaseAuth();
     if (!auth) throw new Error('Firebase is not configured');
     await signInWithPopup(auth, googleProvider);
+  }, []);
+
+  const signInEmail = useCallback(async (email: string, password: string) => {
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error('Firebase is not configured');
+    await signInWithEmailAndPassword(auth, email, password);
+  }, []);
+
+  const signUpEmail = useCallback(async (email: string, password: string) => {
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error('Firebase is not configured');
+    await createUserWithEmailAndPassword(auth, email, password);
+  }, []);
+
+  const sendPasswordReset = useCallback(async (email: string) => {
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error('Firebase is not configured');
+    await sendPasswordResetEmail(auth, email);
   }, []);
 
   const signInDev = useCallback((email: string) => {
@@ -107,8 +141,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, signInGoogle, signInDev, signOut, getToken }),
-    [user, loading, signInGoogle, signInDev, signOut, getToken]
+    () => ({
+      user,
+      loading,
+      hasGoogle: firebaseConfigured,
+      hasEmailPassword: firebaseConfigured,
+      hasDevAuth: AUTH_TEST_MODE,
+      signInGoogle,
+      signInEmail,
+      signUpEmail,
+      sendPasswordReset,
+      signInDev,
+      signOut,
+      getToken,
+    }),
+    [
+      user,
+      loading,
+      signInGoogle,
+      signInEmail,
+      signUpEmail,
+      sendPasswordReset,
+      signInDev,
+      signOut,
+      getToken,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
