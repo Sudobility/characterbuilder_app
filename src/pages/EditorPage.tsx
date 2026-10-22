@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  useAnalyze,
   useCharacter,
   useCreateCharacter,
+  useDescribe,
   useGenerate,
   useGeneration,
   useUpdateCharacter,
@@ -22,14 +24,17 @@ import {
 } from '@sudobility/characterbuilder_types';
 import { isInsufficientCredits } from '@sudobility/characterbuilder_client';
 import { FaceSpecForm } from '../components/FaceSpecForm';
+import { AncestryPicker, pathLabel } from '../components/AncestryPicker';
 import { ImageTile } from '../components/ImageTile';
 import { GalleryPage } from './GalleryPage';
 import { BreadcrumbBuilder } from '../utils/BreadcrumbBuilder';
+import { fileToDownscaledDataUrl } from '../lib/image';
 import {
   Button,
   Card,
   CardContent,
   CardHeader,
+  Checkbox,
   Heading,
   Input,
   Label,
@@ -39,9 +44,17 @@ import {
   SelectTrigger,
   SelectValue,
   Text,
+  TextArea,
 } from '../ui';
 
 const COUNTS = Array.from({ length: 10 }, (_, i) => String(i + 1));
+// "Look" 1..10 → conformity 0.1..1.0: the fraction of unset traits cast to the
+// most common ("beautiful") value for the demographic; the rest are sampled for
+// variety. 'Any' = natural (no typicality bias). 10 = the most typical face.
+const LOOK_NATURAL = 'Any';
+const LOOK_OPTIONS = [LOOK_NATURAL, ...Array.from({ length: 10 }, (_, i) => String(i + 1))];
+const lookValue = (conformity: number | undefined) =>
+  conformity && conformity > 0 ? String(Math.round(conformity * 10)) : LOOK_NATURAL;
 // 'auto' = let the caster decide (Radix Select forbids an empty-string value).
 const HEALTH_OPTIONS = ['auto', ...HEALTH_STATES];
 
@@ -95,9 +108,18 @@ export function EditorPage() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [health, setHealth] = useState<string>('auto');
-  const [subPopulation, setSubPopulation] = useState<string>('');
+  // Hierarchical ancestry selection (node ids from the taxonomy root down). An empty
+  // path = "any". `mix` adds a second heritage for a half-and-half person.
+  const [ancestryPath, setAncestryPath] = useState<string[]>([]);
+  const [mixEnabled, setMixEnabled] = useState<boolean>(false);
+  const [ancestryPath2, setAncestryPath2] = useState<string[]>([]);
+  const [description, setDescription] = useState<string>('');
+  const [describeError, setDescribeError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const generate = useGenerate();
+  const describe = useDescribe();
+  const analyze = useAnalyze();
   const create = useCreateCharacter();
   const update = useUpdateCharacter();
 
@@ -152,13 +174,81 @@ export function EditorPage() {
     return created.id;
   };
 
-  const onGenerate = async () => {
-    setError(null);
-    setJobId(null);
+  // The demographics the Health / Sub-population controls describe (shared by
+  // the generate flow and the describe-to-spec helper).
+  const buildDemographics = (): Demographics => {
     const demographics: Demographics = {};
     if (health && health !== 'auto')
       demographics.health = health as Demographics['health'];
-    if (subPopulation.trim()) demographics.subPopulation = subPopulation.trim();
+    const primary = pathLabel(ancestryPath);
+    const secondary = pathLabel(ancestryPath2);
+    if (mixEnabled && primary && secondary) {
+      // Half-and-half: the caster resolves a concrete leaf on each side and
+      // inherits every trait from one randomly-chosen parent.
+      demographics.mix = [{ subPopulation: primary }, { subPopulation: secondary }];
+    } else if (primary) {
+      // A single heritage; a stem (e.g. "Asian") descends to a random sub-population.
+      demographics.subPopulation = primary;
+    }
+    return demographics;
+  };
+
+  /**
+   * Describe-to-spec: ask the AI to translate the free-text description into
+   * structured traits, then merge them over the current draft (one undo step).
+   */
+  const onDescribe = async () => {
+    const text = description.trim();
+    if (!text || describe.isPending) return;
+    setDescribeError(null);
+    try {
+      const { spec: inferred } = await describe.mutateAsync({
+        description: text,
+        ...(Object.keys(buildDemographics()).length > 0
+          ? { demographics: buildDemographics() }
+          : {}),
+      });
+      if (Object.keys(inferred).length === 0) {
+        setDescribeError('No traits could be inferred from that description.');
+        return;
+      }
+      store.getState().mergeSpec(inferred);
+    } catch (e) {
+      setDescribeError(
+        e instanceof Error ? e.message : 'Could not read the description'
+      );
+    }
+  };
+
+  /**
+   * Analyze-from-photo: downscale the chosen headshot, send it to the vision
+   * endpoint, and merge the read traits over the draft (one undo step).
+   */
+  const onPhoto = async (file: File | undefined) => {
+    if (!file || analyze.isPending) return;
+    setPhotoError(null);
+    try {
+      const image = await fileToDownscaledDataUrl(file);
+      const { spec: read } = await analyze.mutateAsync({
+        image,
+        ...(Object.keys(buildDemographics()).length > 0
+          ? { demographics: buildDemographics() }
+          : {}),
+      });
+      if (Object.keys(read).length === 0) {
+        setPhotoError('No traits could be read from that photo.');
+        return;
+      }
+      store.getState().mergeSpec(read);
+    } catch (e) {
+      setPhotoError(e instanceof Error ? e.message : 'Could not read the photo');
+    }
+  };
+
+  const onGenerate = async () => {
+    setError(null);
+    setJobId(null);
+    const demographics = buildDemographics();
 
     // Auto-save first so every generation belongs to a saved character — the
     // user never has to save by hand before generating.
@@ -250,7 +340,100 @@ export function EditorPage() {
             </Link>
           )}
         </div>
-        <FaceSpecForm spec={spec} set={set} />
+
+        {/* Describe-to-spec: free text → structured traits, merged into the form. */}
+        <Card>
+          <CardHeader>
+            <Heading level={3} size="lg">
+              Describe the character
+            </Heading>
+            <Text as="p" size="sm" className="text-theme-text-secondary">
+              Write a few sentences and let AI fill in the traits below. It only
+              sets what the description implies — tweak the rest by hand.
+            </Text>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              <TextArea
+                value={description}
+                onChange={setDescription}
+                rows={4}
+                placeholder="e.g. A weathered fisherman in his 60s with deep-set grey eyes, a broad crooked nose, thick salt-and-pepper beard and sun-creased olive skin."
+              />
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="secondary"
+                  disabled={!description.trim() || describe.isPending}
+                  onClick={onDescribe}
+                >
+                  {describe.isPending ? 'Reading…' : 'Suggest traits'}
+                </Button>
+                {describeError && (
+                  <Text as="span" size="sm" className="text-red-500">
+                    {describeError}
+                  </Text>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-theme-border pt-3">
+                <Text as="span" size="sm" className="text-theme-text-secondary">
+                  …or read the traits from a headshot:
+                </Text>
+                <label className="inline-flex cursor-pointer items-center rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80">
+                  {analyze.isPending ? 'Analyzing…' : 'Upload photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={analyze.isPending}
+                    onChange={(e) => {
+                      onPhoto(e.target.files?.[0]);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+                {photoError && (
+                  <Text as="span" size="sm" className="text-red-500">
+                    {photoError}
+                  </Text>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <FaceSpecForm
+          spec={spec}
+          set={set}
+          extras={{
+            demographics: (
+              <div className="flex flex-col gap-2 border-t border-theme-border pt-4">
+                <AncestryPicker
+                  label="Demographic"
+                  path={ancestryPath}
+                  onChange={setAncestryPath}
+                />
+                <label className="flex items-center gap-2">
+                  <Checkbox checked={mixEnabled} onChange={setMixEnabled} />
+                  <Text as="span" size="sm">
+                    Mixed (blend two demographics)
+                  </Text>
+                </label>
+                {mixEnabled && (
+                  <AncestryPicker
+                    label="Mixed with"
+                    path={ancestryPath2}
+                    onChange={setAncestryPath2}
+                  />
+                )}
+                <Text as="p" size="xs" className="text-theme-text-secondary">
+                  Type to search, or pick a broad region — a region draws a
+                  random sub-population each image.
+                </Text>
+              </div>
+            ),
+          }}
+        />
       </div>
 
       {/* Right: sticky generate panel */}
@@ -301,16 +484,16 @@ export function EditorPage() {
                   options={HEALTH_OPTIONS}
                   onChange={setHealth}
                 />
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="subpop">Sub-population</Label>
-                  <Input
-                    id="subpop"
-                    className="w-56"
-                    value={subPopulation}
-                    placeholder="e.g. Korean; Yoruba"
-                    onChange={(e) => setSubPopulation(e.target.value)}
-                  />
-                </div>
+                <ParamSelect
+                  label="Look (1–10)"
+                  value={lookValue(params.conformity)}
+                  options={LOOK_OPTIONS}
+                  onChange={(v) =>
+                    store.getState().setParams({
+                      conformity: (v === LOOK_NATURAL ? 0 : Number(v) / 10) as never,
+                    })
+                  }
+                />
               </div>
 
               <div className="rounded-lg bg-theme-bg-secondary p-3">

@@ -21,4 +21,6 @@ export {
   SelectValue,
   SelectContent,
   SelectItem,
+  Combobox,
 } from '@sudobility/components';
+export type { ComboboxOption } from '@sudobility/components';

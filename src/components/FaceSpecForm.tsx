@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import {
   FEATURE_GROUPS,
   type FeatureMeta,
 } from '@sudobility/characterbuilder_lib';
 import type { FaceSpec } from '@sudobility/characterbuilder_types';
+import { TraitOption } from './trait-icons';
 import {
   Badge,
   Card,
@@ -45,7 +47,7 @@ function EnumField(props: {
           <SelectItem value={UNSET}>Any</SelectItem>
           {meta.options!.map((o) => (
             <SelectItem key={o.value} value={o.value}>
-              {o.label}
+              <TraitOption trait={meta.key} value={o.value} label={o.label} />
             </SelectItem>
           ))}
         </SelectContent>
@@ -134,9 +136,17 @@ function NumberField(props: {
   );
 }
 
-/** Renders the whole comprehensive FaceSpec editor from FEATURE_GROUPS. */
-export function FaceSpecForm(props: { spec: FaceSpec; set: SetFeature }) {
-  const { spec, set } = props;
+/**
+ * Renders the whole comprehensive FaceSpec editor from FEATURE_GROUPS. `extras`
+ * injects app-owned controls (keyed by group id) below that group's fields —
+ * e.g. the hierarchical ancestry picker under "Who they are".
+ */
+export function FaceSpecForm(props: {
+  spec: FaceSpec;
+  set: SetFeature;
+  extras?: Partial<Record<string, ReactNode>>;
+}) {
+  const { spec, set, extras } = props;
   return (
     <div className="flex flex-col gap-4">
       {FEATURE_GROUPS.map((group) => (
@@ -192,6 +202,7 @@ export function FaceSpecForm(props: { spec: FaceSpec; set: SetFeature }) {
                 );
               })}
             </div>
+            {extras?.[group.id] && <div className="mt-4">{extras[group.id]}</div>}
           </CardContent>
         </Card>
       ))}

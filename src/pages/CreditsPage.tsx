@@ -1,6 +1,7 @@
 import {
   useBalance,
   useCreditProducts,
+  useDevTopUp,
 } from '@sudobility/characterbuilder_client';
 import {
   Badge,
@@ -20,6 +21,7 @@ const REVENUECAT_KEY = import.meta.env.VITE_REVENUECAT_API_KEY as
 export function CreditsPage() {
   const { data: balance } = useBalance();
   const { data: products, isLoading } = useCreditProducts();
+  const topUp = useDevTopUp();
 
   return (
     <div className="flex flex-col gap-4">
@@ -35,6 +37,30 @@ export function CreditsPage() {
       <Text as="p" className="text-theme-text-secondary">
         Each generated image costs 1 credit.
       </Text>
+
+      {import.meta.env.DEV && (
+        <Card>
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="secondary"
+                disabled={topUp.isPending}
+                onClick={() => topUp.mutate(100)}
+              >
+                {topUp.isPending ? 'Adding…' : 'Add 100 dev credits'}
+              </Button>
+              <Text as="span" size="sm" className="text-theme-text-secondary">
+                Local testing only — disabled when the API runs in production.
+              </Text>
+              {topUp.isError && (
+                <Text as="span" size="sm" className="text-red-500">
+                  Top-up unavailable on this server.
+                </Text>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isLoading ? (
         <Spinner size="large" />

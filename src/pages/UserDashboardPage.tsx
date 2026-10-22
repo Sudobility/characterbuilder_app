@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext';
 import { CreditsPage } from './CreditsPage';
 import { DashboardPage } from './DashboardPage';
 import { GalleryPage } from './GalleryPage';
+import { JobHistoryPage } from './JobHistoryPage';
 
 /**
  * The signed-in hub at `/dashboard/:section` — a master/detail page whose
@@ -17,6 +18,7 @@ import { GalleryPage } from './GalleryPage';
 const SECTIONS = [
   { id: 'characters', label: 'Characters', description: 'Your characters and face specs' },
   { id: 'gallery', label: 'Gallery', description: 'Every image you have generated' },
+  { id: 'history', label: 'Job history', description: 'Generation jobs and their status' },
   { id: 'credits', label: 'Credits', description: 'Balance and top-ups' },
   { id: 'account', label: 'Account', description: 'Your profile and sign-out' },
 ] as const;
@@ -72,6 +74,8 @@ function SectionDetail({ section }: { section: SectionId }) {
   switch (section) {
     case 'gallery':
       return <GalleryPage />;
+    case 'history':
+      return <JobHistoryPage />;
     case 'credits':
       return <CreditsPage />;
     case 'account':

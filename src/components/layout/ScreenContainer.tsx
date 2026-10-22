@@ -44,6 +44,7 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
   // maps these and appends sign-out).
   const authenticatedMenuItems: AuthMenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', onClick: () => navigate('/dashboard') },
+    { id: 'history', label: 'Job history', onClick: () => navigate('/dashboard/history') },
     { id: 'credits', label: 'Credits', onClick: () => navigate('/dashboard/credits') },
   ];
 
@@ -67,6 +68,7 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
     menuItems: [
       { id: 'characters', label: 'Characters', href: '/dashboard/characters', show: !!user },
       { id: 'gallery', label: 'Gallery', href: '/dashboard/gallery', show: !!user },
+      { id: 'history', label: 'History', href: '/dashboard/history', show: !!user },
       { id: 'sheets', label: 'Sheets', href: '/sheets', show: !!user },
       { id: 'docs', label: 'Docs', href: '/docs' },
       { id: 'tutorials', label: 'Tutorials', href: '/tutorials' },
