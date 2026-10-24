@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
 import { ImageTile } from '../components/ImageTile';
 import { ImageLightbox } from '../components/ImageLightbox';
-import { Heading, Spinner, Text } from '../ui';
+import { Button, Heading, Spinner, Text } from '../ui';
 
 interface GalleryImage {
   imageId: string;
@@ -25,6 +26,7 @@ export function GalleryPage({
 } = {}) {
   const { data, isLoading } = useGenerations();
   const { data: chars } = useCharacters();
+  const navigate = useNavigate();
 
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -47,9 +49,16 @@ export function GalleryPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Heading level={characterId ? 2 : 1} size={characterId ? 'xl' : '2xl'}>
-        {title}
-      </Heading>
+      <div className="flex items-center justify-between gap-3">
+        <Heading level={characterId ? 2 : 1} size={characterId ? 'xl' : '2xl'}>
+          {title}
+        </Heading>
+        {!characterId && (
+          <Button variant="primary" onClick={() => navigate('/new')}>
+            New character
+          </Button>
+        )}
+      </div>
 
       {isLoading ? (
         <Spinner size="large" />

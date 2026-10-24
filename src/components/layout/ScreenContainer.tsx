@@ -66,7 +66,6 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
       onClick: () => navigate('/'),
     },
     menuItems: [
-      { id: 'characters', label: 'Characters', href: '/dashboard/characters', show: !!user },
       { id: 'gallery', label: 'Gallery', href: '/dashboard/gallery', show: !!user },
       { id: 'history', label: 'History', href: '/dashboard/history', show: !!user },
       { id: 'sheets', label: 'Sheets', href: '/sheets', show: !!user },
@@ -96,8 +95,8 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
           {
             title: 'Create',
             links: [
-              { label: 'Characters', href: '/dashboard/characters' },
               { label: 'Gallery', href: '/dashboard/gallery' },
+              { label: 'History', href: '/dashboard/history' },
               { label: 'Sheets', href: '/sheets' },
               { label: 'Credits', href: '/dashboard/credits' },
             ],

@@ -5,18 +5,17 @@ import { MasterDetailPage } from '../components/layout/MasterDetailPage';
 import { Button, Card, CardContent, Heading, Text } from '../ui';
 import { useAuth } from '../auth/AuthContext';
 import { CreditsPage } from './CreditsPage';
-import { DashboardPage } from './DashboardPage';
 import { GalleryPage } from './GalleryPage';
 import { JobHistoryPage } from './JobHistoryPage';
 
 /**
  * The signed-in hub at `/dashboard/:section` — a master/detail page whose
- * sections are real sub-routes (deep-linkable, breadcrumbed). Characters and
- * Gallery live here (per the app's structure), alongside account and credits.
- * The character editor (`/characters/:id`) and sheet studio remain full pages.
+ * sections are real sub-routes (deep-linkable, breadcrumbed). Gallery and job
+ * history live here, alongside account and credits. The character editor
+ * (`/characters/:id`, `/new`) and sheet studio remain full pages, reached from
+ * the Gallery/History "New character" action and the job → character links.
  */
 const SECTIONS = [
-  { id: 'characters', label: 'Characters', description: 'Your characters and face specs' },
   { id: 'gallery', label: 'Gallery', description: 'Every image you have generated' },
   { id: 'history', label: 'Job history', description: 'Generation jobs and their status' },
   { id: 'credits', label: 'Credits', description: 'Balance and top-ups' },
@@ -32,7 +31,7 @@ function isSection(v: string | undefined): v is SectionId {
 export function UserDashboardPage() {
   const { section: raw } = useParams();
   const navigate = useNavigate();
-  const section: SectionId = isSection(raw) ? raw : 'characters';
+  const section: SectionId = isSection(raw) ? raw : 'gallery';
 
   // On desktop both panels show; on mobile a selection switches to the detail.
   const [mobileView, setMobileView] = useState<'navigation' | 'content'>('navigation');
@@ -72,17 +71,15 @@ export function UserDashboardPage() {
 
 function SectionDetail({ section }: { section: SectionId }) {
   switch (section) {
-    case 'gallery':
-      return <GalleryPage />;
     case 'history':
       return <JobHistoryPage />;
     case 'credits':
       return <CreditsPage />;
     case 'account':
       return <AccountSection />;
-    case 'characters':
+    case 'gallery':
     default:
-      return <DashboardPage />;
+      return <GalleryPage />;
   }
 }
 

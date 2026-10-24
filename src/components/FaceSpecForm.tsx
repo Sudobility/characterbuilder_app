@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   FEATURE_GROUPS,
+  type FeatureGroup,
   type FeatureMeta,
 } from '@sudobility/characterbuilder_lib';
 import type { FaceSpec } from '@sudobility/characterbuilder_types';
@@ -137,6 +138,77 @@ function NumberField(props: {
 }
 
 /**
+ * One FEATURE_GROUP as a titled card of controls. `extra` injects an app-owned
+ * control below the grid (e.g. the hierarchical ancestry picker under "Who they
+ * are"). Used both by the full form and, one at a time, by the wizard editor.
+ */
+export function FaceSpecGroupCard(props: {
+  group: FeatureGroup;
+  spec: FaceSpec;
+  set: SetFeature;
+  extra?: ReactNode;
+}) {
+  const { group, spec, set, extra } = props;
+  return (
+    <Card>
+      <CardHeader>
+        <Heading level={3} size="lg">
+          {group.title}
+        </Heading>
+        {group.blurb && (
+          <Text as="p" size="sm" className="text-theme-text-secondary">
+            {group.blurb}
+          </Text>
+        )}
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {group.features.map((meta) => {
+            const value = spec[meta.key];
+            if (meta.kind === 'enum')
+              return (
+                <EnumField
+                  key={meta.key as string}
+                  meta={meta}
+                  value={value as string | undefined}
+                  set={set}
+                />
+              );
+            if (meta.kind === 'multi')
+              return (
+                <MultiField
+                  key={meta.key as string}
+                  meta={meta}
+                  value={value as string[] | undefined}
+                  set={set}
+                />
+              );
+            if (meta.kind === 'number')
+              return (
+                <NumberField
+                  key={meta.key as string}
+                  meta={meta}
+                  value={value as number | undefined}
+                  set={set}
+                />
+              );
+            return (
+              <TextField
+                key={meta.key as string}
+                meta={meta}
+                value={value as string | undefined}
+                set={set}
+              />
+            );
+          })}
+        </div>
+        {extra && <div className="mt-4">{extra}</div>}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
  * Renders the whole comprehensive FaceSpec editor from FEATURE_GROUPS. `extras`
  * injects app-owned controls (keyed by group id) below that group's fields —
  * e.g. the hierarchical ancestry picker under "Who they are".
@@ -150,61 +222,13 @@ export function FaceSpecForm(props: {
   return (
     <div className="flex flex-col gap-4">
       {FEATURE_GROUPS.map((group) => (
-        <Card key={group.id}>
-          <CardHeader>
-            <Heading level={3} size="lg">
-              {group.title}
-            </Heading>
-            {group.blurb && (
-              <Text as="p" size="sm" className="text-theme-text-secondary">
-                {group.blurb}
-              </Text>
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {group.features.map((meta) => {
-                const value = spec[meta.key];
-                if (meta.kind === 'enum')
-                  return (
-                    <EnumField
-                      key={meta.key as string}
-                      meta={meta}
-                      value={value as string | undefined}
-                      set={set}
-                    />
-                  );
-                if (meta.kind === 'multi')
-                  return (
-                    <MultiField
-                      key={meta.key as string}
-                      meta={meta}
-                      value={value as string[] | undefined}
-                      set={set}
-                    />
-                  );
-                if (meta.kind === 'number')
-                  return (
-                    <NumberField
-                      key={meta.key as string}
-                      meta={meta}
-                      value={value as number | undefined}
-                      set={set}
-                    />
-                  );
-                return (
-                  <TextField
-                    key={meta.key as string}
-                    meta={meta}
-                    value={value as string | undefined}
-                    set={set}
-                  />
-                );
-              })}
-            </div>
-            {extras?.[group.id] && <div className="mt-4">{extras[group.id]}</div>}
-          </CardContent>
-        </Card>
+        <FaceSpecGroupCard
+          key={group.id}
+          group={group}
+          spec={spec}
+          set={set}
+          extra={extras?.[group.id]}
+        />
       ))}
     </div>
   );

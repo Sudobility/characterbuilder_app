@@ -47,7 +47,7 @@ function ScreenContainerLayout() {
 function HomeRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/dashboard/characters" replace />;
+  if (user) return <Navigate to="/dashboard/gallery" replace />;
   return <HomePage />;
 }
 
@@ -66,9 +66,9 @@ export function App() {
         <Route path="terms" element={<TermsPage />} />
         <Route path="sitemap" element={<SitemapPage />} />
 
-        {/* Signed-in hub: Characters / Gallery / Credits / Account live here as
+        {/* Signed-in hub: Gallery / History / Credits / Account live here as
             deep-linkable sections. Gated in place; signed out opens the modal. */}
-        <Route path="dashboard" element={<Navigate to="/dashboard/characters" replace />} />
+        <Route path="dashboard" element={<Navigate to="/dashboard/gallery" replace />} />
         <Route
           path="dashboard/:section"
           element={
@@ -113,7 +113,7 @@ export function App() {
         />
 
         {/* Legacy/top-level entry points now redirect into the dashboard. */}
-        <Route path="characters" element={<Navigate to="/dashboard/characters" replace />} />
+        <Route path="characters" element={<Navigate to="/dashboard/gallery" replace />} />
         <Route path="gallery" element={<Navigate to="/dashboard/gallery" replace />} />
         <Route path="credits" element={<Navigate to="/dashboard/credits" replace />} />
       </Route>

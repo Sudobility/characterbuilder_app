@@ -11,6 +11,7 @@ import {
 } from '@sudobility/characterbuilder_client';
 import {
   composePrompt,
+  FEATURE_GROUPS,
   useDraft,
   useDraftStore,
 } from '@sudobility/characterbuilder_lib';
@@ -23,7 +24,7 @@ import {
   type FaceSpec,
 } from '@sudobility/characterbuilder_types';
 import { isInsufficientCredits } from '@sudobility/characterbuilder_client';
-import { FaceSpecForm } from '../components/FaceSpecForm';
+import { FaceSpecGroupCard } from '../components/FaceSpecForm';
 import { AncestryPicker, pathLabel } from '../components/AncestryPicker';
 import { ImageTile } from '../components/ImageTile';
 import { GalleryPage } from './GalleryPage';
@@ -57,6 +58,17 @@ const lookValue = (conformity: number | undefined) =>
   conformity && conformity > 0 ? String(Math.round(conformity * 10)) : LOOK_NATURAL;
 // 'auto' = let the caster decide (Radix Select forbids an empty-string value).
 const HEALTH_OPTIONS = ['auto', ...HEALTH_STATES];
+
+// The editor is a wizard: one step per section, in order. The first step is the
+// free-text "describe", then every FEATURE_GROUP ("Who they are" first), then
+// "Generate". You advance with Next; the tabs let you jump back to any step you
+// have already reached, but never skip ahead.
+const WIZARD_STEPS: { id: string; title: string }[] = [
+  { id: 'describe', title: 'Describe the character' },
+  ...FEATURE_GROUPS.map((g) => ({ id: g.id, title: g.title })),
+  { id: 'generate', title: 'Generate' },
+];
+const LAST_STEP = WIZARD_STEPS.length - 1;
 
 function ParamSelect(props: {
   label: string;
@@ -104,6 +116,22 @@ export function EditorPage() {
     builder.setDynamicTitle(path, crumbName ?? 'Character');
     return () => builder.clearDynamicTitle(path);
   }, [id, crumbName]);
+
+  // Wizard position. `maxStep` is a high-water mark: tabs up to it are enabled,
+  // so you can revisit anything you have seen but not jump ahead. Editing an
+  // existing character unlocks every step (you are not creating from scratch).
+  const [step, setStep] = useState(0);
+  const [maxStep, setMaxStep] = useState(id ? LAST_STEP : 0);
+  useEffect(() => {
+    if (id) setMaxStep(LAST_STEP);
+  }, [id]);
+  const goNext = () =>
+    setStep((s) => {
+      const n = Math.min(s + 1, LAST_STEP);
+      setMaxStep((m) => Math.max(m, n));
+      return n;
+    });
+  const goBack = () => setStep((s) => Math.max(0, s - 1));
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -301,55 +329,113 @@ export function EditorPage() {
     }
   };
 
-  return (
-    <div className="flex flex-col gap-10">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-      {/* Left: the comprehensive form */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="cname">Name</Label>
-            <Input
-              id="cname"
-              value={meta.name}
-              placeholder="Character name"
-              onChange={(e) => store.getState().setMeta({ name: e.target.value })}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="crole">Role</Label>
-            <Input
-              id="crole"
-              value={meta.role}
-              placeholder="e.g. lead"
-              onChange={(e) => store.getState().setMeta({ role: e.target.value })}
-            />
-          </div>
-          <Button variant="outline" onClick={() => store.getState().randomizeMissing()}>
-            Randomize missing
-          </Button>
-          <Button variant="ghost" onClick={() => store.getState().undo()}>
-            Undo
-          </Button>
-          <Button variant="ghost" onClick={() => store.getState().redo()}>
-            Redo
-          </Button>
-          {id && (
-            <Link to={`/sheets/${id}`}>
-              <Button variant="secondary">Character sheets</Button>
-            </Link>
-          )}
-        </div>
+  const stepId = WIZARD_STEPS[step]!.id;
+  const group = FEATURE_GROUPS.find((g) => g.id === stepId);
+  const generating =
+    generate.isPending || jobActive || create.isPending || update.isPending;
+  const genLabel =
+    create.isPending || update.isPending
+      ? 'Saving…'
+      : generate.isPending
+        ? 'Enqueuing…'
+        : jobActive
+          ? job?.status === 'running'
+            ? 'Rendering…'
+            : 'Queued…'
+          : `Generate (${count} credit${count > 1 ? 's' : ''})`;
 
-        {/* Describe-to-spec: free text → structured traits, merged into the form. */}
+  // App-owned control injected under the "Who they are" group: the hierarchical
+  // demographic picker (+ optional second heritage for a mixed person).
+  const ancestryExtra = (
+    <div className="flex flex-col gap-2 border-t border-theme-border pt-4">
+      <AncestryPicker label="Demographic" path={ancestryPath} onChange={setAncestryPath} />
+      <label className="flex items-center gap-2">
+        <Checkbox checked={mixEnabled} onChange={setMixEnabled} />
+        <Text as="span" size="sm">
+          Mixed (blend two demographics)
+        </Text>
+      </label>
+      {mixEnabled && (
+        <AncestryPicker label="Mixed with" path={ancestryPath2} onChange={setAncestryPath2} />
+      )}
+      <Text as="p" size="xs" className="text-theme-text-secondary">
+        Type to search, or pick a broad region — a region draws a random
+        sub-population each image.
+      </Text>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Persistent header: identity + global draft actions, on every step. */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="cname">Name</Label>
+          <Input
+            id="cname"
+            value={meta.name}
+            placeholder="Character name"
+            onChange={(e) => store.getState().setMeta({ name: e.target.value })}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="crole">Role</Label>
+          <Input
+            id="crole"
+            value={meta.role}
+            placeholder="e.g. lead"
+            onChange={(e) => store.getState().setMeta({ role: e.target.value })}
+          />
+        </div>
+        <Button variant="outline" onClick={() => store.getState().randomizeMissing()}>
+          Randomize missing
+        </Button>
+        <Button variant="ghost" onClick={() => store.getState().undo()}>
+          Undo
+        </Button>
+        <Button variant="ghost" onClick={() => store.getState().redo()}>
+          Redo
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={create.isPending || update.isPending}
+          onClick={onSave}
+        >
+          {characterId ? 'Save' : 'Save as character'}
+        </Button>
+        {id && (
+          <Link to={`/sheets/${id}`}>
+            <Button variant="secondary">Character sheets</Button>
+          </Link>
+        )}
+      </div>
+
+      {/* Step tabs: enabled up to the furthest step reached; forward steps lock. */}
+      <div className="flex flex-wrap gap-1 border-b border-theme-border pb-2">
+        {WIZARD_STEPS.map((s, i) => (
+          <Button
+            key={s.id}
+            size="sm"
+            variant={i === step ? 'primary' : 'ghost'}
+            disabled={i > maxStep}
+            onClick={() => setStep(i)}
+          >
+            {s.title}
+          </Button>
+        ))}
+      </div>
+
+      {/* Step body */}
+      {stepId === 'describe' && (
         <Card>
           <CardHeader>
             <Heading level={3} size="lg">
               Describe the character
             </Heading>
             <Text as="p" size="sm" className="text-theme-text-secondary">
-              Write a few sentences and let AI fill in the traits below. It only
-              sets what the description implies — tweak the rest by hand.
+              Write a few sentences and let AI fill in the traits in the next
+              steps. It only sets what the description implies — tweak the rest by
+              hand. You can also skip straight ahead with Next.
             </Text>
           </CardHeader>
           <CardContent>
@@ -401,184 +487,151 @@ export function EditorPage() {
             </div>
           </CardContent>
         </Card>
+      )}
 
-        <FaceSpecForm
+      {group && (
+        <FaceSpecGroupCard
+          group={group}
           spec={spec}
           set={set}
-          extras={{
-            demographics: (
-              <div className="flex flex-col gap-2 border-t border-theme-border pt-4">
-                <AncestryPicker
-                  label="Demographic"
-                  path={ancestryPath}
-                  onChange={setAncestryPath}
-                />
-                <label className="flex items-center gap-2">
-                  <Checkbox checked={mixEnabled} onChange={setMixEnabled} />
-                  <Text as="span" size="sm">
-                    Mixed (blend two demographics)
-                  </Text>
-                </label>
-                {mixEnabled && (
-                  <AncestryPicker
-                    label="Mixed with"
-                    path={ancestryPath2}
-                    onChange={setAncestryPath2}
-                  />
-                )}
-                <Text as="p" size="xs" className="text-theme-text-secondary">
-                  Type to search, or pick a broad region — a region draws a
-                  random sub-population each image.
-                </Text>
-              </div>
-            ),
-          }}
+          extra={group.id === 'demographics' ? ancestryExtra : undefined}
         />
-      </div>
+      )}
 
-      {/* Right: sticky generate panel */}
-      <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-        <Card>
-          <CardHeader>
-            <Heading level={3} size="lg">
-              Generate
-            </Heading>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-3">
-                <ParamSelect
-                  label="Shot"
-                  value={String(params.shot ?? 'headshot')}
-                  options={SHOTS}
-                  onChange={(v) => store.getState().setParams({ shot: v as never })}
-                />
-                <ParamSelect
-                  label="Expression"
-                  value={String(params.expression ?? 'neutral')}
-                  options={EXPRESSIONS}
-                  onChange={(v) =>
-                    store.getState().setParams({ expression: v as never })
-                  }
-                />
-                <ParamSelect
-                  label="Size"
-                  value={String(params.size ?? 'portrait')}
-                  options={IMAGE_SIZES}
-                  onChange={(v) => store.getState().setParams({ size: v as never })}
-                />
-                <ParamSelect
-                  label="Count"
-                  value={String(count)}
-                  options={COUNTS}
-                  onChange={(v) =>
-                    store.getState().setParams({ count: Number(v) as never })
-                  }
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <ParamSelect
-                  label="Health"
-                  value={health}
-                  options={HEALTH_OPTIONS}
-                  onChange={setHealth}
-                />
-                <ParamSelect
-                  label="Look (1–10)"
-                  value={lookValue(params.conformity)}
-                  options={LOOK_OPTIONS}
-                  onChange={(v) =>
-                    store.getState().setParams({
-                      conformity: (v === LOOK_NATURAL ? 0 : Number(v) / 10) as never,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="rounded-lg bg-theme-bg-secondary p-3">
-                <Text as="span" size="xs" className="text-theme-text-secondary">
-                  Prompt preview
-                </Text>
-                <Text as="p" size="sm" className="mt-1">
-                  {prompt}
-                </Text>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="primary"
-                  disabled={
-                    generate.isPending ||
-                    jobActive ||
-                    create.isPending ||
-                    update.isPending
-                  }
-                  onClick={onGenerate}
-                >
-                  {create.isPending || update.isPending
-                    ? 'Saving…'
-                    : generate.isPending
-                      ? 'Enqueuing…'
-                      : jobActive
-                        ? job?.status === 'running'
-                          ? 'Rendering…'
-                          : 'Queued…'
-                        : `Generate (${count} credit${count > 1 ? 's' : ''})`}
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={create.isPending || update.isPending}
-                  onClick={onSave}
-                >
-                  {characterId ? 'Save' : 'Save as character'}
-                </Button>
-              </div>
-              {error && (
-                <Text as="p" size="sm" className="text-red-500">
-                  {error}
-                </Text>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {jobId && (
+      {stepId === 'generate' && (
+        <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
               <Heading level={3} size="lg">
-                Results
+                Generate
               </Heading>
+              <Text as="p" size="sm" className="text-theme-text-secondary">
+                Choose the shot and press Generate below. Anything you left unset
+                is cast coherently from the demographic you picked.
+              </Text>
             </CardHeader>
             <CardContent>
-              {jobActive && (
-                <Text as="p" size="sm" className="text-theme-text-secondary">
-                  {job?.status === 'running'
-                    ? `Rendering ${count} image${count > 1 ? 's' : ''}…`
-                    : 'Queued…'}{' '}
-                  This can take a while.
-                </Text>
-              )}
-              {job && job.images.length > 0 && (
-                <div className="mt-2 grid grid-cols-2 gap-3">
-                  {job.images.map((img) => (
-                    <ImageTile key={img.id} imageId={img.id} alt={meta.name} />
-                  ))}
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-3">
+                  <ParamSelect
+                    label="Shot"
+                    value={String(params.shot ?? 'headshot')}
+                    options={SHOTS}
+                    onChange={(v) => store.getState().setParams({ shot: v as never })}
+                  />
+                  <ParamSelect
+                    label="Expression"
+                    value={String(params.expression ?? 'neutral')}
+                    options={EXPRESSIONS}
+                    onChange={(v) =>
+                      store.getState().setParams({ expression: v as never })
+                    }
+                  />
+                  <ParamSelect
+                    label="Size"
+                    value={String(params.size ?? 'portrait')}
+                    options={IMAGE_SIZES}
+                    onChange={(v) => store.getState().setParams({ size: v as never })}
+                  />
+                  <ParamSelect
+                    label="Count"
+                    value={String(count)}
+                    options={COUNTS}
+                    onChange={(v) =>
+                      store.getState().setParams({ count: Number(v) as never })
+                    }
+                  />
                 </div>
-              )}
-              {job?.status === 'failed' && (
-                <Text as="p" size="sm" className="text-red-500">
-                  {job.error ?? 'Generation failed'}
-                </Text>
-              )}
+
+                <div className="flex flex-wrap gap-3">
+                  <ParamSelect
+                    label="Health"
+                    value={health}
+                    options={HEALTH_OPTIONS}
+                    onChange={setHealth}
+                  />
+                  <ParamSelect
+                    label="Look (1–10)"
+                    value={lookValue(params.conformity)}
+                    options={LOOK_OPTIONS}
+                    onChange={(v) =>
+                      store.getState().setParams({
+                        conformity: (v === LOOK_NATURAL ? 0 : Number(v) / 10) as never,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="rounded-lg bg-theme-bg-secondary p-3">
+                  <Text as="span" size="xs" className="text-theme-text-secondary">
+                    Prompt preview
+                  </Text>
+                  <Text as="p" size="sm" className="mt-1">
+                    {prompt}
+                  </Text>
+                </div>
+
+                {error && (
+                  <Text as="p" size="sm" className="text-red-500">
+                    {error}
+                  </Text>
+                )}
+              </div>
             </CardContent>
           </Card>
+
+          {jobId && (
+            <Card>
+              <CardHeader>
+                <Heading level={3} size="lg">
+                  Results
+                </Heading>
+              </CardHeader>
+              <CardContent>
+                {jobActive && (
+                  <Text as="p" size="sm" className="text-theme-text-secondary">
+                    {job?.status === 'running'
+                      ? `Rendering ${count} image${count > 1 ? 's' : ''}…`
+                      : 'Queued…'}{' '}
+                    This can take a while.
+                  </Text>
+                )}
+                {job && job.images.length > 0 && (
+                  <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {job.images.map((img) => (
+                      <ImageTile key={img.id} imageId={img.id} alt={meta.name} />
+                    ))}
+                  </div>
+                )}
+                {job?.status === 'failed' && (
+                  <Text as="p" size="sm" className="text-red-500">
+                    {job.error ?? 'Generation failed'}
+                  </Text>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* This character's previously generated images. */}
+          {id && <GalleryPage characterId={id} title="This character's images" />}
+        </div>
+      )}
+
+      {/* Wizard footer: Back + the Next→Generate primary CTA. */}
+      <div className="flex items-center justify-between border-t border-theme-border pt-4">
+        <Button variant="ghost" disabled={step === 0} onClick={goBack}>
+          Back
+        </Button>
+        {step === LAST_STEP ? (
+          <Button variant="primary" disabled={generating} onClick={onGenerate}>
+            {genLabel}
+          </Button>
+        ) : (
+          <Button variant="primary" onClick={goNext}>
+            Next
+          </Button>
         )}
       </div>
-      </div>
-
-      {/* The character's associated galleries (its generated images). */}
-      {id && <GalleryPage characterId={id} title="This character's images" />}
     </div>
   );
 }

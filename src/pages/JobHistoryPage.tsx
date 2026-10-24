@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
 import type { Generation } from '@sudobility/characterbuilder_types';
 import { ImageTile } from '../components/ImageTile';
 import { ImageLightbox } from '../components/ImageLightbox';
-import { Badge, Card, CardContent, Heading, Spinner, Text } from '../ui';
+import { Badge, Button, Card, CardContent, Heading, Spinner, Text } from '../ui';
 
 type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -49,6 +49,7 @@ interface ActiveImage {
 export function JobHistoryPage() {
   const { data, isLoading } = useGenerations({ limit: 50 });
   const { data: chars } = useCharacters();
+  const navigate = useNavigate();
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
     chars?.items.forEach((c) => m.set(c.id, c.name));
@@ -60,15 +61,20 @@ export function JobHistoryPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Heading level={1} size="2xl">
-        Job history
-      </Heading>
+      <div className="flex items-center justify-between gap-3">
+        <Heading level={1} size="2xl">
+          Job history
+        </Heading>
+        <Button variant="primary" onClick={() => navigate('/new')}>
+          New character
+        </Button>
+      </div>
 
       {isLoading ? (
         <Spinner size="large" />
       ) : items.length === 0 ? (
         <Text as="p" className="text-theme-text-secondary">
-          No generations yet. Open a character and press Generate.
+          No generations yet. Press “New character” to design and generate one.
         </Text>
       ) : (
         <div className="flex flex-col gap-3">
