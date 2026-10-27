@@ -20,6 +20,7 @@ import {
   HEALTH_STATES,
   IMAGE_SIZES,
   SHOTS,
+  visualStyleGroups,
   type Demographics,
   type FaceSpec,
 } from '@sudobility/characterbuilder_types';
@@ -61,11 +62,12 @@ const HEALTH_OPTIONS = ['auto', ...HEALTH_STATES];
 
 // The editor is a wizard: one step per section, in order. The first step is the
 // free-text "describe", then every FEATURE_GROUP ("Who they are" first), then
-// "Generate". You advance with Next; the tabs let you jump back to any step you
+// "Art Style" and "Generate". You advance with Next; the tabs let you jump back to any step you
 // have already reached, but never skip ahead.
 const WIZARD_STEPS: { id: string; title: string }[] = [
   { id: 'describe', title: 'Describe the character' },
   ...FEATURE_GROUPS.map((g) => ({ id: g.id, title: g.title })),
+  { id: 'art-style', title: 'Art Style' },
   { id: 'generate', title: 'Generate' },
 ];
 const LAST_STEP = WIZARD_STEPS.length - 1;
@@ -144,6 +146,10 @@ export function EditorPage() {
   const [description, setDescription] = useState<string>('');
   const [describeError, setDescribeError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [styleGroupId, setStyleGroupId] = useState(() =>
+    visualStyleGroups.find((group) => group.styles.some((style) => style.id === params.artStyle))?.id
+      ?? visualStyleGroups[0]!.id
+  );
 
   const generate = useGenerate();
   const describe = useDescribe();
@@ -366,7 +372,7 @@ export function EditorPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-24">
       {/* Persistent header: identity + global draft actions, on every step. */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
@@ -498,6 +504,38 @@ export function EditorPage() {
         />
       )}
 
+      {stepId === 'art-style' && (
+        <section className="flex h-[min(65dvh,44rem)] min-h-[20rem] flex-col overflow-hidden rounded-lg border border-theme-border bg-theme-bg-primary">
+          <div className="shrink-0 border-b border-theme-border p-4 sm:p-5">
+            <Heading level={3} size="lg">Art Style</Heading>
+            <Text as="p" size="sm" className="mt-1 text-theme-text-secondary">
+              Choose the visual look for this character's portrait. Selected: {visualStyleGroups.flatMap((group) => group.styles).find((style) => style.id === (params.artStyle ?? 'naturalistic'))?.name ?? 'Naturalistic'}.
+            </Text>
+          </div>
+          <div className="shrink-0 overflow-x-auto border-b border-theme-border p-3" role="group" aria-label="Art style groups">
+            <div className="flex w-max gap-2">
+              {visualStyleGroups.map((styleGroup) => (
+                <button key={styleGroup.id} type="button" aria-pressed={styleGroupId === styleGroup.id}
+                  className={`shrink-0 rounded border px-3 py-2 text-sm ${styleGroupId === styleGroup.id ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-theme-border'}`}
+                  onClick={() => setStyleGroupId(styleGroup.id)}>{styleGroup.name}</button>
+              ))}
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5" aria-label="Art style choices">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {visualStyleGroups.find((styleGroup) => styleGroup.id === styleGroupId)?.styles.map((style) => (
+                <button key={style.id} type="button" aria-pressed={(params.artStyle ?? 'naturalistic') === style.id}
+                  className={`overflow-hidden rounded-lg border-2 text-left ${(params.artStyle ?? 'naturalistic') === style.id ? 'border-blue-600' : 'border-theme-border'}`}
+                  onClick={() => store.getState().setParams({ artStyle: style.id })}>
+                  <img src={style.sampleImageUrl} alt={`${style.name} sample`} loading="lazy" className="aspect-[4/5] w-full object-cover" />
+                  <span className="block p-2"><strong className="block text-sm">{style.name}</strong><span className="block text-xs text-theme-text-secondary">{style.description}</span></span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {stepId === 'generate' && (
         <div className="flex flex-col gap-4">
           <Card>
@@ -508,6 +546,9 @@ export function EditorPage() {
               <Text as="p" size="sm" className="text-theme-text-secondary">
                 Choose the shot and press Generate below. Anything you left unset
                 is cast coherently from the demographic you picked.
+              </Text>
+              <Text as="p" size="sm" className="text-theme-text-secondary">
+                Art style: {visualStyleGroups.flatMap((group) => group.styles).find((style) => style.id === (params.artStyle ?? 'naturalistic'))?.name ?? 'Naturalistic'}
               </Text>
             </CardHeader>
             <CardContent>
@@ -561,6 +602,9 @@ export function EditorPage() {
                     }
                   />
                 </div>
+                <Text as="p" size="sm" className="text-theme-text-secondary">
+                  Look favors selected facial traits. Hair length, curl, density, and style stay varied at every Look level.
+                </Text>
 
                 <div className="rounded-lg bg-theme-bg-secondary p-3">
                   <Text as="span" size="xs" className="text-theme-text-secondary">
@@ -617,20 +661,22 @@ export function EditorPage() {
         </div>
       )}
 
-      {/* Wizard footer: Back + the Next→Generate primary CTA. */}
-      <div className="flex items-center justify-between border-t border-theme-border pt-4">
-        <Button variant="ghost" disabled={step === 0} onClick={goBack}>
-          Back
-        </Button>
-        {step === LAST_STEP ? (
-          <Button variant="primary" disabled={generating} onClick={onGenerate}>
-            {genLabel}
+      {/* Keep the action panel visible even when the header and step tabs wrap. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-theme-border bg-theme-bg-primary shadow-lg">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <Button variant="ghost" disabled={step === 0} onClick={goBack}>
+            Back
           </Button>
-        ) : (
-          <Button variant="primary" onClick={goNext}>
-            Next
-          </Button>
-        )}
+          {step === LAST_STEP ? (
+            <Button variant="primary" disabled={generating} onClick={onGenerate}>
+              {genLabel}
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={goNext}>
+              {stepId === 'art-style' ? 'Continue to Generate' : 'Next'}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
