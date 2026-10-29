@@ -6,13 +6,9 @@ import { downloadImage } from '../lib/download';
 /**
  * Fetches an authenticated image by id and shows it via an object URL.
  *
- * Generated images come back large (~1024px); a tile renders them small. Left
- * to the browser, that is a single harsh GPU downscale that aliases fine detail
- * (hair, skin texture) into visible "noise" — crisp again only when you zoom
- * in, because zooming shrinks the downscale factor. So before display we
- * downscale to roughly the tile's real pixel size with a high-quality,
- * step-halved canvas resample (`prepareThumbnail`), which removes the aliasing.
- * Any failure falls back to showing the original bytes unchanged.
+ * Generated images are downscaled for tiles. The target accounts for the
+ * object-cover crop and display pixel density, with extra resolution so fine
+ * details stay sharp. Any failure shows the original bytes unchanged.
  */
 export function ImageTile({
   imageId,
@@ -35,6 +31,7 @@ export function ImageTile({
 }) {
   const client = useCharacterBuilderClient();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [tileSize, setTileSize] = useState({ width: 0, height: 0 });
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -50,24 +47,36 @@ export function ImageTile({
   };
 
   useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    const measure = () => {
+      const rect = element.getBoundingClientRect();
+      const width = Math.ceil(rect.width);
+      const height = Math.ceil(rect.height);
+      if (width > 0 && height > 0) {
+        setTileSize((previous) => width > previous.width || height > previous.height
+          ? { width: Math.max(width, previous.width), height: Math.max(height, previous.height) }
+          : previous);
+      }
+    };
+    measure();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    observer?.observe(element);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!tileSize.width || !tileSize.height) return;
     let revoked = false;
     let objectUrl: string | null = null;
     setUrl(null);
     setError(false);
-
-    // The tile's rendered pixel size (CSS px × DPR) is the most detail the
-    // display can use; target the longer edge so a portrait image stays sharp
-    // under `object-cover`. Fall back to a sensible size before first layout.
-    const rect = containerRef.current?.getBoundingClientRect();
-    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-    const targetEdge = Math.max(
-      64,
-      Math.round(Math.max(rect?.width ?? 0, rect?.height ?? 0) * dpr) || 512
-    );
-
-    client
-      .getImageBytes(imageId)
-      .then((blob) => prepareThumbnail(blob, targetEdge))
+    client.getImageBytes(imageId)
+      .then((blob) => prepareThumbnail(blob, tileSize.width, tileSize.height, window.devicePixelRatio || 1))
       .then((prepared) => {
         if (revoked) {
           URL.revokeObjectURL(prepared);
@@ -84,7 +93,7 @@ export function ImageTile({
       revoked = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [client, imageId]);
+  }, [client, imageId, tileSize.width, tileSize.height]);
 
   const activate = onSelect ?? onClick;
   const clickable = Boolean(activate);
@@ -167,23 +176,20 @@ export function ImageTile({
 }
 
 /**
- * Returns an object URL for `blob` downscaled so its longer edge is about
- * `targetEdge` device pixels, using repeated halving (each step a high-quality
- * canvas resample) to avoid the aliasing a single large downscale produces.
- * Images already at or below the target, and any browser/decoding failure,
- * return the original bytes untouched — so this can only improve the result,
- * never degrade it.
+ * Downscale for the pixels the visible object-cover crop needs. A 2x reserve
+ * prevents the browser from enlarging a thumbnail after responsive layout or
+ * fractional crop rounding. Images already near that size keep original bytes.
  */
-async function prepareThumbnail(blob: Blob, targetEdge: number): Promise<string> {
+async function prepareThumbnail(blob: Blob, tileWidth: number, tileHeight: number, dpr: number): Promise<string> {
   try {
     if (typeof createImageBitmap !== 'function') return URL.createObjectURL(blob);
     const bitmap = await createImageBitmap(blob);
     try {
-      const longest = Math.max(bitmap.width, bitmap.height);
-      // Already small enough — re-encoding would only risk quality, so skip it.
-      if (longest <= targetEdge * 1.5) return URL.createObjectURL(blob);
-
-      const scale = targetEdge / longest;
+      // object-cover fills both dimensions, then crops one. Size the source for
+      // whichever dimension sets that scale; a longest-edge target can undershoot.
+      const coverScale = Math.max(tileWidth / bitmap.width, tileHeight / bitmap.height);
+      const scale = Math.min(1, coverScale * dpr * 2);
+      if (scale >= 0.8) return URL.createObjectURL(blob);
       const outW = Math.max(1, Math.round(bitmap.width * scale));
       const outH = Math.max(1, Math.round(bitmap.height * scale));
 

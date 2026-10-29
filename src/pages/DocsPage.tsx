@@ -30,7 +30,7 @@ const TOPICS: Topic[] = [
   {
     id: 'face-spec',
     title: 'The face spec',
-    body: 'The left side of the editor is the face spec: structured fields grouped by region of the face. Every field is optional — fill only what matters and leave the rest for the caster to decide. Fields come in a few shapes: a dropdown for a single choice, checkboxes for a set, a text field for free description, and a number for exact values like age.',
+    body: 'The left side of the editor is the face spec: structured fields grouped by region of the face. Every field is optional — fill only what matters and leave the rest for the caster to decide. Use dropdowns for shapes, checkboxes for sets, and sliders for measurable lip dimensions in millimeters. Leave a slider on Any to let casting choose its value.',
     bullets: [
       'Who they are',
       'Head & face structure',
@@ -107,8 +107,12 @@ export function DocsPage() {
               Documentation
             </Heading>
             <Text as="p" size="lg" color="muted" className="mt-3 max-w-2xl">
-              How CharacterBuilder works, field by field. New here? Start with the{' '}
-              <Link to="/tutorials" className="font-medium text-theme-text-primary hover:underline">
+              How CharacterBuilder works, field by field. New here? Start with
+              the{' '}
+              <Link
+                to="/tutorials"
+                className="font-medium text-theme-text-primary hover:underline"
+              >
                 tutorials
               </Link>
               .

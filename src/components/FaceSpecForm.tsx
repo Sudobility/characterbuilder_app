@@ -130,9 +130,62 @@ function NumberField(props: {
         max={meta.max}
         value={value ?? ''}
         onChange={(e) =>
-          set(meta.key, e.target.value === '' ? undefined : Number(e.target.value))
+          set(
+            meta.key,
+            e.target.value === '' ? undefined : Number(e.target.value)
+          )
         }
       />
+    </div>
+  );
+}
+
+function SliderField(props: {
+  meta: FeatureMeta;
+  value: number | undefined;
+  set: SetFeature;
+}) {
+  const { meta, value, set } = props;
+  const midpoint = Math.round(((meta.min! + meta.max!) / 2) * 2) / 2;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={meta.key as string}>{meta.label}</Label>
+        <span className="text-sm tabular-nums text-theme-text-secondary">
+          {value == null ? 'Any' : `${value} ${meta.unit ?? ''}`}
+        </span>
+      </div>
+      <input
+        id={meta.key as string}
+        type="range"
+        min={meta.min}
+        max={meta.max}
+        step={meta.step ?? 1}
+        value={value ?? midpoint}
+        onChange={(event) => set(meta.key, Number(event.target.value))}
+        aria-valuetext={value == null ? 'Any' : `${value} ${meta.unit ?? ''}`}
+        className="w-full accent-current"
+      />
+      <div className="flex items-center justify-between text-xs text-theme-text-secondary">
+        <span>
+          {meta.min} {meta.unit}
+        </span>
+        <button
+          type="button"
+          onClick={() => set(meta.key, undefined)}
+          className="underline underline-offset-2"
+        >
+          Let casting decide
+        </button>
+        <span>
+          {meta.max} {meta.unit}
+        </span>
+      </div>
+      {meta.help && (
+        <Text as="p" size="sm" className="text-theme-text-secondary">
+          {meta.help}
+        </Text>
+      )}
     </div>
   );
 }
@@ -186,6 +239,15 @@ export function FaceSpecGroupCard(props: {
             if (meta.kind === 'number')
               return (
                 <NumberField
+                  key={meta.key as string}
+                  meta={meta}
+                  value={value as number | undefined}
+                  set={set}
+                />
+              );
+            if (meta.kind === 'slider')
+              return (
+                <SliderField
                   key={meta.key as string}
                   meta={meta}
                   value={value as number | undefined}
