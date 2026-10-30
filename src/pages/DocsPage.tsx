@@ -30,7 +30,7 @@ const TOPICS: Topic[] = [
   {
     id: 'face-spec',
     title: 'The face spec',
-    body: 'The left side of the editor is the face spec: structured fields grouped by region of the face. Every field is optional — fill only what matters and leave the rest for the caster to decide. Use dropdowns for shapes, checkboxes for sets, and sliders for measurable lip dimensions in millimeters. Leave a slider on Any to let casting choose its value.',
+    body: 'The left side of the editor is the face spec: structured fields grouped by region of the face. Every field is optional — fill only what matters and leave the rest for the caster to decide. Use dropdowns for shapes, checkboxes for sets, and sliders for measurable lip dimensions and eye-opening proportion. Leave a slider on Any to let casting choose its value.',
     bullets: [
       'Who they are',
       'Head & face structure',
