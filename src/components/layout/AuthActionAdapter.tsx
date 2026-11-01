@@ -24,7 +24,7 @@ const divider = (id: string): DropdownMenuItem => ({
 /**
  * Fed to `building_blocks`' firebase topbar as its `AuthActionComponent` — the
  * library injects the auth UI as a prop so it stays provider-agnostic. This app
- * has its own `useAuth()` (not `@sudobility/auth-components`' Firebase provider),
+ * has its own `useAuth()` (not `@sudobility/components/auth`' Firebase provider),
  * so this adapter bridges the two: a "Log in" button when signed out, else the
  * top-right avatar + dropdown.
  *

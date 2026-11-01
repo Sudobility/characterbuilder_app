@@ -1,4 +1,4 @@
-// Stub for @sudobility/devops-components — not used by this app.
+// Stub for @sudobility/components/devops — not used by this app.
 // Aliased in vite.config.ts so building_blocks' optional import resolves.
 import React from 'react';
 
