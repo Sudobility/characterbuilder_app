@@ -4,7 +4,8 @@ import { MasterListItem } from '@sudobility/components';
 import { MasterDetailPage } from '../components/layout/MasterDetailPage';
 import { Button, Card, CardContent, Heading, Text } from '../ui';
 import { useAuth } from '../auth/AuthContext';
-import { CreditsPage } from './CreditsPage';
+import { CreditsPage } from '../features/credits/CreditsPage';
+import { CreditBadge } from '../features/credits/CreditBadge';
 import { GalleryPage } from './GalleryPage';
 import { JobHistoryPage } from './JobHistoryPage';
 
@@ -50,6 +51,9 @@ export function UserDashboardPage() {
       masterTitle="Dashboard"
       masterContent={
         <nav className="flex flex-col gap-1 p-2">
+          <div className="px-2 pb-2">
+            <CreditBadge />
+          </div>
           {SECTIONS.map((s) => (
             <MasterListItem
               key={s.id}
