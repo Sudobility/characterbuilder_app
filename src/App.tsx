@@ -21,6 +21,7 @@ const TutorialsPage = lazy(() => import('./pages/TutorialsPage').then((m) => ({ 
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
 const UserDashboardPage = lazy(() => import('./pages/UserDashboardPage').then((m) => ({ default: m.UserDashboardPage })));
 const EditorPage = lazy(() => import('./pages/EditorPage').then((m) => ({ default: m.EditorPage })));
+const SimpleGeneratePage = lazy(() => import('./pages/SimpleGeneratePage').then((m) => ({ default: m.SimpleGeneratePage })));
 const SheetStudioPage = lazy(() => import('./pages/SheetStudioPage').then((m) => ({ default: m.SheetStudioPage })));
 
 /** Fallback while a route chunk loads. */
@@ -78,9 +79,20 @@ export function App() {
           }
         />
 
-        {/* The character editor is a full page outside the dashboard master/detail. */}
+        {/* The simplified, prompt-first flow: type a description, answer a few
+            essentials, generate. The 100+ traits stay hidden (cast behind the
+            scenes). The full-control editor lives at /advanced. */}
         <Route
           path="new"
+          element={
+            <RequireSignIn>
+              <SimpleGeneratePage />
+            </RequireSignIn>
+          }
+        />
+        {/* The full trait-by-trait editor (the former /new flow). */}
+        <Route
+          path="advanced"
           element={
             <RequireSignIn>
               <EditorPage />

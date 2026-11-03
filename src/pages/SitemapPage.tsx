@@ -27,7 +27,8 @@ export function SitemapPage() {
         icon: 'home',
         links: [
           { path: '/characters', label: 'Characters', description: 'Your characters and face specs' },
-          { path: '/new', label: 'New character', description: 'Start a new face spec' },
+          { path: '/new', label: 'New character', description: 'Describe a character and generate' },
+          { path: '/advanced', label: 'Advanced editor', description: 'Full trait-by-trait control' },
           { path: '/gallery', label: 'Gallery', description: 'Every image you have generated' },
           { path: '/credits', label: 'Credits', description: 'Your balance and top-ups' },
         ],

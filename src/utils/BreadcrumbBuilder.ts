@@ -91,6 +91,7 @@ export class BreadcrumbBuilder {
 const LABELS: Record<string, string> = {
   characters: 'Characters',
   new: 'New character',
+  advanced: 'Advanced editor',
   gallery: 'Gallery',
   credits: 'Credits',
   account: 'Account',

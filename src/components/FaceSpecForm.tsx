@@ -105,6 +105,7 @@ function TextField(props: {
       ) : (
         <Input
           id={meta.key as string}
+          className="h-9"
           value={value ?? ''}
           placeholder={meta.placeholder}
           onChange={(e) => set(meta.key, e.target.value || undefined)}
@@ -125,6 +126,7 @@ function NumberField(props: {
       <Label htmlFor={meta.key as string}>{meta.label}</Label>
       <Input
         id={meta.key as string}
+        className="h-9"
         type="number"
         min={meta.min}
         max={meta.max}

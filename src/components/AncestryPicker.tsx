@@ -48,6 +48,32 @@ export function pathLabel(path: string[], index?: Index): string | undefined {
 }
 
 /**
+ * Resolve a describe-inferred ancestry to a picker `path`, so the Ethnicity
+ * control (and the casting it drives) reflect what the prompt said. Tries the
+ * specific sub-population note ("Chinese") first, then the broad ancestry enum
+ * ("east-asian"), matching a taxonomy node by id / label / alias (case- and
+ * separator-insensitive). Returns `[]` when nothing matches (picker stays "Any").
+ */
+export function pathForAncestry(ancestry?: string, note?: string): string[] {
+  const index = buildIndex(ANCESTRY_FOREST);
+  const norm = (s: string) => s.trim().toLowerCase();
+  const slug = (s: string) => norm(s).replace(/\s+/g, '-');
+  const find = (q?: string): AncestryNode | undefined => {
+    if (!q) return undefined;
+    const n = norm(q);
+    const s = slug(q);
+    for (const { node } of index.rows) {
+      if (norm(node.id) === n || norm(node.id) === s) return node;
+      if (norm(node.label) === n) return node;
+      if (node.aliases?.some((a) => norm(a) === n || slug(a) === s)) return node;
+    }
+    return undefined;
+  };
+  const node = find(note) ?? find(ancestry);
+  return node ? pathFor(node.id, index) : [];
+}
+
+/**
  * Demographic picker: one searchable combobox listing the whole taxonomy,
  * indented to show the parent/child hierarchy (Asian › East Asian › Chinese →
  * Northern Chinese). Type to filter by name, or scroll the tree. Choosing a

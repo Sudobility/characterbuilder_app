@@ -30,6 +30,7 @@ import { AncestryPicker, pathLabel } from '../components/AncestryPicker';
 import { ImageTile } from '../components/ImageTile';
 import { GalleryPage } from './GalleryPage';
 import { BreadcrumbBuilder } from '../utils/BreadcrumbBuilder';
+import { useSetPageConfig } from '../hooks/usePageConfig';
 import { fileToDownscaledDataUrl } from '../lib/image';
 import {
   Button,
@@ -107,6 +108,16 @@ export function EditorPage() {
   const params = useDraft((s) => s.params);
   const meta = useDraft((s) => s.meta);
   const characterId = useDraft((s) => s.characterId);
+
+  // Own the full content height so the step content scrolls in its own pane while
+  // the Back/Next bar stays pinned to the bottom of the content area (above the
+  // footer). We re-add the centered column + horizontal padding ourselves.
+  useSetPageConfig({
+    layoutMode: 'full',
+    maxWidth: 'full',
+    contentPadding: 'none',
+    scrollable: false,
+  });
 
   // Name the `/characters/:id` breadcrumb with the character's name instead of
   // the raw id (the editor is the one place that knows it).
@@ -228,30 +239,31 @@ export function EditorPage() {
   };
 
   /**
-   * Describe-to-spec: ask the AI to translate the free-text description into
-   * structured traits, then merge them over the current draft (one undo step).
+   * Leaving the describe step: if the user wrote a description, translate it to
+   * structured traits and merge them over the draft (one undo step) BEFORE
+   * advancing — so pressing Next does the "suggest traits" work automatically.
+   * A failure (or empty text) is non-fatal: we still advance so the user can set
+   * the traits by hand in the following steps.
    */
-  const onDescribe = async () => {
+  const onNextFromDescribe = async () => {
     const text = description.trim();
-    if (!text || describe.isPending) return;
-    setDescribeError(null);
-    try {
-      const { spec: inferred } = await describe.mutateAsync({
-        description: text,
-        ...(Object.keys(buildDemographics()).length > 0
-          ? { demographics: buildDemographics() }
-          : {}),
-      });
-      if (Object.keys(inferred).length === 0) {
-        setDescribeError('No traits could be inferred from that description.');
-        return;
+    if (text && !describe.isPending) {
+      setDescribeError(null);
+      try {
+        const { spec: inferred } = await describe.mutateAsync({
+          description: text,
+          ...(Object.keys(buildDemographics()).length > 0
+            ? { demographics: buildDemographics() }
+            : {}),
+        });
+        if (Object.keys(inferred).length > 0) store.getState().mergeSpec(inferred);
+      } catch (e) {
+        setDescribeError(
+          e instanceof Error ? e.message : 'Could not read the description'
+        );
       }
-      store.getState().mergeSpec(inferred);
-    } catch (e) {
-      setDescribeError(
-        e instanceof Error ? e.message : 'Could not read the description'
-      );
     }
+    goNext();
   };
 
   /**
@@ -372,7 +384,11 @@ export function EditorPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6 pb-24">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col">
+      {/* The trait options and controls scroll in their own pane; the Back/Next
+          bar below stays pinned to the bottom of the content area. */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6">
       {/* Persistent header: identity + global draft actions, on every step. */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
@@ -439,9 +455,9 @@ export function EditorPage() {
               Describe the character
             </Heading>
             <Text as="p" size="sm" className="text-theme-text-secondary">
-              Write a few sentences and let AI fill in the traits in the next
-              steps. It only sets what the description implies — tweak the rest by
-              hand. You can also skip straight ahead with Next.
+              Write a few sentences and we'll fill in the traits when you press
+              Next — it only sets what the description implies, so you can tweak
+              the rest by hand. Leave it blank to set everything yourself.
             </Text>
           </CardHeader>
           <CardContent>
@@ -452,20 +468,11 @@ export function EditorPage() {
                 rows={4}
                 placeholder="e.g. A weathered fisherman in his 60s with deep-set grey eyes, a broad crooked nose, thick salt-and-pepper beard and sun-creased olive skin."
               />
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="secondary"
-                  disabled={!description.trim() || describe.isPending}
-                  onClick={onDescribe}
-                >
-                  {describe.isPending ? 'Reading…' : 'Suggest traits'}
-                </Button>
-                {describeError && (
-                  <Text as="span" size="sm" className="text-red-500">
-                    {describeError}
-                  </Text>
-                )}
-              </div>
+              {describeError && (
+                <Text as="span" size="sm" className="text-red-500">
+                  {describeError}
+                </Text>
+              )}
 
               <div className="flex flex-wrap items-center gap-3 border-t border-theme-border pt-3">
                 <Text as="span" size="sm" className="text-theme-text-secondary">
@@ -661,8 +668,12 @@ export function EditorPage() {
         </div>
       )}
 
-      {/* Keep the action panel visible even when the header and step tabs wrap. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-theme-border bg-theme-bg-primary shadow-lg">
+        </div>
+      </div>
+
+      {/* Pinned action bar: always at the bottom of the content area, above the
+          footer (never overlapping it). The step content scrolls in the pane above. */}
+      <div className="flex-none border-t border-theme-border bg-theme-bg-primary shadow-lg">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button variant="ghost" disabled={step === 0} onClick={goBack}>
             Back
@@ -670,6 +681,15 @@ export function EditorPage() {
           {step === LAST_STEP ? (
             <Button variant="primary" disabled={generating} onClick={onGenerate}>
               {genLabel}
+            </Button>
+          ) : stepId === 'describe' ? (
+            // Leaving the describe step runs the AI trait-suggestion first.
+            <Button
+              variant="primary"
+              disabled={describe.isPending}
+              onClick={onNextFromDescribe}
+            >
+              {describe.isPending ? 'Reading…' : 'Next'}
             </Button>
           ) : (
             <Button variant="primary" onClick={goNext}>
