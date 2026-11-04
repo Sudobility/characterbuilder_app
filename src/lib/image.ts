@@ -25,12 +25,49 @@ export async function fileToDownscaledDataUrl(
   }
 }
 
+/**
+ * Downscale an image Blob (e.g. fetched headshot bytes) to a JPEG data URL — used
+ * to pass an existing headshot back to the generator as a reference image for
+ * variations, small enough for the request payload. Keeps aspect ratio; never
+ * upscales; falls back to the raw bytes as a data URL if canvas is unavailable.
+ */
+export async function blobToDownscaledDataUrl(
+  blob: Blob,
+  maxDim = 768,
+  quality = 0.85
+): Promise<string> {
+  const raw = await blobToDataUrl(blob);
+  try {
+    const img = await loadImage(raw);
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    if (scale >= 1) return raw;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return raw;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch {
+    return raw;
+  }
+}
+
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
+  });
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
   });
 }
 

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   isInsufficientCredits,
-  useCreateCharacter,
   useDescribe,
   useGenerate,
   useGeneration,
@@ -56,14 +55,6 @@ const AGE_BAND_MID: Record<string, number> = {
   'seventies-plus': 75,
 };
 
-/** A short, friendly character name from the opening words of the prompt. */
-function promptToName(prompt: string): string {
-  const clean = prompt.trim().replace(/\s+/g, ' ');
-  if (!clean) return 'Untitled';
-  const cut = clean.slice(0, 40);
-  return (cut.length < clean.length ? `${cut.replace(/[\s,.;:]+$/, '')}…` : cut) || 'Untitled';
-}
-
 function Field(props: {
   label: string;
   value: string;
@@ -116,16 +107,11 @@ export function SimpleGeneratePage() {
   const [error, setError] = useState<string | null>(null);
 
   const describe = useDescribe();
-  const create = useCreateCharacter();
   const generate = useGenerate();
   const { data: job } = useGeneration(jobId ?? undefined);
   const jobActive = !!jobId && job?.status !== 'succeeded' && job?.status !== 'failed';
 
-  const busy =
-    describe.isPending ||
-    create.isPending ||
-    generate.isPending ||
-    jobActive;
+  const busy = describe.isPending || generate.isPending || jobActive;
 
   const demographicsFrom = (): Demographics => {
     const demographics: Demographics = {};
@@ -183,23 +169,13 @@ export function SimpleGeneratePage() {
     if (age.trim() && Number.isFinite(ageYears) && ageYears >= 1 && ageYears <= 120)
       spec.ageYears = Math.round(ageYears);
 
-    // Auto-save a character so the images land in the gallery/history.
-    let characterId: string;
-    try {
-      const character = await create.mutateAsync({ name: promptToName(text), spec });
-      characterId = character.id;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save the character');
-      return;
-    }
-
     // Generate — the hidden traits are cast by the API; the prompt goes to the
-    // image model too.
+    // image model too. No character is created up front: the user names the
+    // images they want to keep afterward (on each image's portrait screen).
     const conformity = look === LOOK_ANY ? 0 : Number(look) / 10;
     generate.mutate(
       {
         spec,
-        characterId,
         description: text,
         ...(Object.keys(demographics).length > 0 ? { demographics } : {}),
         params: {
@@ -226,11 +202,9 @@ export function SimpleGeneratePage() {
   };
 
   const n = Number(count);
-  const genLabel = create.isPending
-    ? 'Saving…'
-    : generate.isPending
-      ? 'Enqueuing…'
-      : jobActive
+  const genLabel = generate.isPending
+    ? 'Enqueuing…'
+    : jobActive
         ? job?.status === 'running'
           ? 'Rendering…'
           : 'Queued…'
@@ -416,11 +390,25 @@ export function SimpleGeneratePage() {
                   </Text>
                 )}
                 {job && job.images.length > 0 && (
-                  <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {job.images.map((img) => (
-                      <ImageTile key={img.id} imageId={img.id} alt={promptToName(prompt)} />
-                    ))}
-                  </div>
+                  <>
+                    <Text as="p" size="sm" className="mb-2 text-theme-text-secondary">
+                      Tap an image to view it and keep it as a named character.
+                    </Text>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {job.images.map((img) => (
+                        <ImageTile
+                          key={img.id}
+                          imageId={img.id}
+                          alt="generated portrait"
+                          onClick={() =>
+                            navigate(`/portrait/${img.id}`, {
+                              state: { spec: img.spec ?? inferredSpec },
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
                 {job?.status === 'failed' && (
                   <Text as="p" size="sm" className="text-red-500">

@@ -6,7 +6,6 @@ import {
   type FooterConfig,
   type TopBarConfig,
 } from '@sudobility/building_blocks';
-import { useAuth } from '../../auth/AuthContext';
 import { APP_NAME, APP_VERSION, COMPANY_NAME, COPYRIGHT_YEAR } from '../../config';
 import { PageConfigContext } from '../../context/pageConfigContextDef';
 import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
@@ -27,7 +26,6 @@ import { LinkWrapper } from './LinkWrapper';
 export function ScreenContainer({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
 
   // Pages override the route-level layout (scrollable/maxWidth/padding) via
   // `useSetPageConfig`; we hold that state here and merge it into `page`.
@@ -44,7 +42,10 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
   // maps these and appends sign-out).
   const authenticatedMenuItems: AuthMenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', onClick: () => navigate('/dashboard') },
-    { id: 'history', label: 'Job history', onClick: () => navigate('/dashboard/history') },
+    { id: 'gallery', label: 'Gallery', onClick: () => navigate('/dashboard/gallery') },
+    { id: 'characters', label: 'Characters', onClick: () => navigate('/dashboard/characters') },
+    { id: 'history', label: 'History', onClick: () => navigate('/dashboard/history') },
+    { id: 'sheets', label: 'Sheets', onClick: () => navigate('/sheets') },
     { id: 'credits', label: 'Credits', onClick: () => navigate('/dashboard/credits') },
   ];
 
@@ -65,10 +66,10 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
       appName: APP_NAME,
       onClick: () => navigate('/'),
     },
+    // Gallery / History / Sheets are signed-in destinations and live in the
+    // avatar dropdown (authenticatedMenuItems), not the top bar; the top bar
+    // keeps only the public, site-wide links.
     menuItems: [
-      { id: 'gallery', label: 'Gallery', href: '/dashboard/gallery', show: !!user },
-      { id: 'history', label: 'History', href: '/dashboard/history', show: !!user },
-      { id: 'sheets', label: 'Sheets', href: '/sheets', show: !!user },
       { id: 'docs', label: 'Docs', href: '/docs' },
       { id: 'tutorials', label: 'Tutorials', href: '/tutorials' },
       { id: 'about', label: 'About', href: '/about' },

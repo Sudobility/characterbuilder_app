@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
-import type { Generation } from '@sudobility/characterbuilder_types';
+import type { FaceSpec, Generation } from '@sudobility/characterbuilder_types';
 import { ImageTile } from '../components/ImageTile';
-import { ImageLightbox } from '../components/ImageLightbox';
 import { Badge, Button, Card, CardContent, Heading, Spinner, Text } from '../ui';
 
 type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
@@ -34,12 +33,6 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-interface ActiveImage {
-  imageId: string;
-  characterId: string | null;
-  role: string | null;
-}
-
 /**
  * The generation job history: every generation (portrait or sheet stage) with its
  * live status, kind, time, credits, result thumbnails and — when failed — the
@@ -52,10 +45,13 @@ export function JobHistoryPage() {
   const navigate = useNavigate();
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
-    chars?.items.forEach((c) => m.set(c.id, c.name));
+    chars?.items.forEach((c) => {
+      if (c.name) m.set(c.id, c.name);
+    });
     return m;
   }, [chars]);
-  const [active, setActive] = useState<ActiveImage | null>(null);
+  const openImage = (imageId: string, spec: FaceSpec | undefined) =>
+    navigate(`/portrait/${imageId}`, { state: { spec } });
 
   const items = data?.items ?? [];
 
@@ -83,20 +79,10 @@ export function JobHistoryPage() {
               key={g.id}
               g={g}
               characterName={g.characterId ? (nameById.get(g.characterId) ?? null) : null}
-              onImage={setActive}
+              onImage={openImage}
             />
           ))}
         </div>
-      )}
-
-      {active && (
-        <ImageLightbox
-          imageId={active.imageId}
-          characterId={active.characterId}
-          characterName={active.characterId ? (nameById.get(active.characterId) ?? null) : null}
-          role={active.role}
-          onClose={() => setActive(null)}
-        />
       )}
     </div>
   );
@@ -109,7 +95,7 @@ function JobRow({
 }: {
   g: Generation;
   characterName: string | null;
-  onImage: (img: ActiveImage) => void;
+  onImage: (imageId: string, spec: FaceSpec | undefined) => void;
 }) {
   const status = STATUS[g.status] ?? STATUS.pending!;
   const active = g.status === 'pending' || g.status === 'running';
@@ -168,13 +154,7 @@ function JobRow({
                   imageId={img.id}
                   alt={img.role ?? kind}
                   label={img.role ?? undefined}
-                  onClick={() =>
-                    onImage({
-                      imageId: img.id,
-                      characterId: g.characterId,
-                      role: img.role ?? null,
-                    })
-                  }
+                  onClick={() => onImage(img.id, img.spec)}
                 />
               ))}
             </div>

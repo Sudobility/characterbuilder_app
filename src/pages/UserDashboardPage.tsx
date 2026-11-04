@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext';
 import { CreditsPage } from '../features/credits/CreditsPage';
 import { CreditBadge } from '../features/credits/CreditBadge';
 import { GalleryPage } from './GalleryPage';
+import { CharactersPage } from './CharactersPage';
 import { JobHistoryPage } from './JobHistoryPage';
 
 /**
@@ -17,6 +18,7 @@ import { JobHistoryPage } from './JobHistoryPage';
  * the Gallery/History "New character" action and the job → character links.
  */
 const SECTIONS = [
+  { id: 'characters', label: 'Characters', description: "Faces you've named" },
   { id: 'gallery', label: 'Gallery', description: 'Every image you have generated' },
   { id: 'history', label: 'Job history', description: 'Generation jobs and their status' },
   { id: 'credits', label: 'Credits', description: 'Balance and top-ups' },
@@ -32,7 +34,7 @@ function isSection(v: string | undefined): v is SectionId {
 export function UserDashboardPage() {
   const { section: raw } = useParams();
   const navigate = useNavigate();
-  const section: SectionId = isSection(raw) ? raw : 'gallery';
+  const section: SectionId = isSection(raw) ? raw : 'characters';
 
   // On desktop both panels show; on mobile a selection switches to the detail.
   const [mobileView, setMobileView] = useState<'navigation' | 'content'>('navigation');
@@ -75,6 +77,8 @@ export function UserDashboardPage() {
 
 function SectionDetail({ section }: { section: SectionId }) {
   switch (section) {
+    case 'characters':
+      return <CharactersPage />;
     case 'history':
       return <JobHistoryPage />;
     case 'credits':

@@ -22,6 +22,8 @@ const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default:
 const UserDashboardPage = lazy(() => import('./pages/UserDashboardPage').then((m) => ({ default: m.UserDashboardPage })));
 const EditorPage = lazy(() => import('./pages/EditorPage').then((m) => ({ default: m.EditorPage })));
 const SimpleGeneratePage = lazy(() => import('./pages/SimpleGeneratePage').then((m) => ({ default: m.SimpleGeneratePage })));
+const PortraitPage = lazy(() => import('./pages/PortraitPage').then((m) => ({ default: m.PortraitPage })));
+const CharacterDetailPage = lazy(() => import('./pages/CharacterDetailPage').then((m) => ({ default: m.CharacterDetailPage })));
 const SheetStudioPage = lazy(() => import('./pages/SheetStudioPage').then((m) => ({ default: m.SheetStudioPage })));
 
 /** Fallback while a route chunk loads. */
@@ -48,7 +50,7 @@ function ScreenContainerLayout() {
 function HomeRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/dashboard/gallery" replace />;
+  if (user) return <Navigate to="/dashboard/characters" replace />;
   return <HomePage />;
 }
 
@@ -69,7 +71,7 @@ export function App() {
 
         {/* Signed-in hub: Gallery / History / Credits / Account live here as
             deep-linkable sections. Gated in place; signed out opens the modal. */}
-        <Route path="dashboard" element={<Navigate to="/dashboard/gallery" replace />} />
+        <Route path="dashboard" element={<Navigate to="/dashboard/characters" replace />} />
         <Route
           path="dashboard/:section"
           element={
@@ -99,11 +101,23 @@ export function App() {
             </RequireSignIn>
           }
         />
+        {/* A character is an object owning many headshots — its hub (rename,
+            delete, headshots grid). Full-trait creation lives at /advanced. */}
         <Route
           path="characters/:id"
           element={
             <RequireSignIn>
-              <EditorPage />
+              <CharacterDetailPage />
+            </RequireSignIn>
+          }
+        />
+        {/* The full-image screen for a generated image: name it (keep it as a
+            character), or rename/delete it once named. */}
+        <Route
+          path="portrait/:imageId"
+          element={
+            <RequireSignIn>
+              <PortraitPage />
             </RequireSignIn>
           }
         />
@@ -125,7 +139,7 @@ export function App() {
         />
 
         {/* Legacy/top-level entry points now redirect into the dashboard. */}
-        <Route path="characters" element={<Navigate to="/dashboard/gallery" replace />} />
+        <Route path="characters" element={<Navigate to="/dashboard/characters" replace />} />
         <Route path="gallery" element={<Navigate to="/dashboard/gallery" replace />} />
         <Route path="credits" element={<Navigate to="/dashboard/credits" replace />} />
       </Route>

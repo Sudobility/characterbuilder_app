@@ -90,6 +90,8 @@ export class BreadcrumbBuilder {
 /** Known path segment → human label. Unknown segments are title-cased. */
 const LABELS: Record<string, string> = {
   characters: 'Characters',
+  portrait: 'Portrait',
+  history: 'History',
   new: 'New character',
   advanced: 'Advanced editor',
   gallery: 'Gallery',

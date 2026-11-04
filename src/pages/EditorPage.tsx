@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   useAnalyze,
   useCharacter,
-  useCreateCharacter,
   useDescribe,
   useGenerate,
   useGeneration,
@@ -121,7 +120,7 @@ export function EditorPage() {
 
   // Name the `/characters/:id` breadcrumb with the character's name instead of
   // the raw id (the editor is the one place that knows it).
-  const crumbName = character?.name ?? (meta.name.trim() || undefined);
+  const crumbName = character?.name ?? undefined;
   useEffect(() => {
     if (!id) return;
     const path = `/characters/${id}`;
@@ -165,7 +164,6 @@ export function EditorPage() {
   const generate = useGenerate();
   const describe = useDescribe();
   const analyze = useAnalyze();
-  const create = useCreateCharacter();
   const update = useUpdateCharacter();
 
   // Generation is an async job: poll the returned id until it finishes.
@@ -191,33 +189,6 @@ export function EditorPage() {
 
   const count = Number(params.count ?? 1);
   const prompt = useMemo(() => composePrompt(spec, params), [spec, params]);
-
-  /**
-   * Persist the character (create or update) and return its id. New characters
-   * get saved and the route is updated to `/characters/:id`, so the editor is
-   * now editing a saved character. Default name "Untitled" when none is typed.
-   */
-  const saveCharacter = async (): Promise<string> => {
-    const name = meta.name.trim() || 'Untitled';
-    const cid = characterId ?? id;
-    if (cid) {
-      await update.mutateAsync({
-        id: cid,
-        req: { name, role: meta.role || null, notes: meta.notes || null, spec },
-      });
-      return cid;
-    }
-    const created = await create.mutateAsync({
-      name,
-      role: meta.role || undefined,
-      notes: meta.notes || undefined,
-      spec,
-    });
-    // Adopt the saved character as the draft, then reflect it in the URL.
-    store.getState().load(created);
-    navigate(`/characters/${created.id}`);
-    return created.id;
-  };
 
   // The demographics the Health / Sub-population controls describe (shared by
   // the generate flow and the describe-to-spec helper).
@@ -296,21 +267,24 @@ export function EditorPage() {
     setJobId(null);
     const demographics = buildDemographics();
 
-    // Auto-save first so every generation belongs to a saved character — the
-    // user never has to save by hand before generating.
-    let cid: string;
-    try {
-      cid = await saveCharacter();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save the character');
-      return;
+    // No up-front naming: a fresh /advanced run generates from the spec alone and
+    // the images are named afterward (on the portrait screen). When editing a
+    // saved character, persist the spec edits and keep the run associated with it.
+    const cid = characterId ?? id;
+    if (cid) {
+      try {
+        await update.mutateAsync({ id: cid, req: { spec } });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not save the character');
+        return;
+      }
     }
 
     generate.mutate(
       {
         spec,
         params,
-        characterId: cid,
+        ...(cid ? { characterId: cid } : {}),
         ...(Object.keys(demographics).length > 0 ? { demographics } : {}),
       },
       {
@@ -332,27 +306,12 @@ export function EditorPage() {
     if (job?.status === 'failed') setError(job.error ?? 'Generation failed');
   }, [job?.status, job?.error]);
 
-  const onSave = () => {
-    const name = meta.name.trim() || 'Untitled';
-    if (characterId) {
-      update.mutate({
-        id: characterId,
-        req: { name, role: meta.role || null, notes: meta.notes || null, spec },
-      });
-    } else {
-      create.mutate(
-        { name, role: meta.role || undefined, notes: meta.notes || undefined, spec },
-        { onSuccess: (c) => navigate(`/characters/${c.id}`) }
-      );
-    }
-  };
-
   const stepId = WIZARD_STEPS[step]!.id;
   const group = FEATURE_GROUPS.find((g) => g.id === stepId);
   const generating =
-    generate.isPending || jobActive || create.isPending || update.isPending;
+    generate.isPending || jobActive || update.isPending;
   const genLabel =
-    create.isPending || update.isPending
+    update.isPending
       ? 'Saving…'
       : generate.isPending
         ? 'Enqueuing…'
@@ -389,17 +348,9 @@ export function EditorPage() {
           bar below stays pinned to the bottom of the content area. */}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6">
-      {/* Persistent header: identity + global draft actions, on every step. */}
+      {/* Persistent header: global draft actions, on every step. No name is asked
+          here — images are named afterward on their portrait screen. */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="cname">Name</Label>
-          <Input
-            id="cname"
-            value={meta.name}
-            placeholder="Character name"
-            onChange={(e) => store.getState().setMeta({ name: e.target.value })}
-          />
-        </div>
         <div className="flex flex-col gap-1">
           <Label htmlFor="crole">Role</Label>
           <Input
@@ -417,13 +368,6 @@ export function EditorPage() {
         </Button>
         <Button variant="ghost" onClick={() => store.getState().redo()}>
           Redo
-        </Button>
-        <Button
-          variant="secondary"
-          disabled={create.isPending || update.isPending}
-          onClick={onSave}
-        >
-          {characterId ? 'Save' : 'Save as character'}
         </Button>
         {id && (
           <Link to={`/sheets/${id}`}>
@@ -648,11 +592,23 @@ export function EditorPage() {
                   </Text>
                 )}
                 {job && job.images.length > 0 && (
-                  <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {job.images.map((img) => (
-                      <ImageTile key={img.id} imageId={img.id} alt={meta.name} />
-                    ))}
-                  </div>
+                  <>
+                    <Text as="p" size="sm" className="mb-2 text-theme-text-secondary">
+                      Tap an image to view it and keep it as a named character.
+                    </Text>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {job.images.map((img) => (
+                        <ImageTile
+                          key={img.id}
+                          imageId={img.id}
+                          alt="generated portrait"
+                          onClick={() =>
+                            navigate(`/portrait/${img.id}`, { state: { spec: img.spec ?? spec } })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
                 {job?.status === 'failed' && (
                   <Text as="p" size="sm" className="text-red-500">

@@ -1,21 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
+import type { FaceSpec } from '@sudobility/characterbuilder_types';
 import { ImageTile } from '../components/ImageTile';
-import { ImageLightbox } from '../components/ImageLightbox';
 import { Button, Heading, Spinner, Text } from '../ui';
 
 interface GalleryImage {
   imageId: string;
   characterId: string | null;
   role: string | null;
+  spec: FaceSpec | undefined;
 }
 
+// The image's own character link (set when a headshot is named or generated as a
+// variation) is authoritative — a loose run's generation has no characterId even
+// though one of its images may have been named into a character.
+
 /**
- * A single grid of every generated image. Clicking a tile opens the full-res
- * lightbox, which links back to the image's character. Embedded with a
- * `characterId` it shows just that character's images (the "character → its
- * images" view).
+ * A single grid of every generated image. Clicking a tile opens that image's
+ * full-screen portrait page, where it can be named (kept as a character) or, if
+ * already a character, renamed/deleted. Embedded with a `characterId` it shows
+ * just that character's images.
  */
 export function GalleryPage({
   characterId,
@@ -28,24 +33,34 @@ export function GalleryPage({
   const { data: chars } = useCharacters();
   const navigate = useNavigate();
 
-  const nameById = useMemo(() => {
+  // Character name by character id, so a headshot can be badged with its name.
+  const nameByCharId = useMemo(() => {
     const m = new Map<string, string>();
-    chars?.items.forEach((c) => m.set(c.id, c.name));
+    chars?.items.forEach((c) => {
+      if (c.name) m.set(c.id, c.name);
+    });
     return m;
   }, [chars]);
 
   const images = useMemo<GalleryImage[]>(() => {
     const out: GalleryImage[] = [];
     for (const g of data?.items ?? []) {
-      if (characterId && g.characterId !== characterId) continue;
       for (const img of g.images) {
-        out.push({ imageId: img.id, characterId: g.characterId, role: img.role ?? null });
+        const imgCharId = img.characterId ?? null;
+        if (characterId && imgCharId !== characterId) continue;
+        out.push({
+          imageId: img.id,
+          characterId: imgCharId,
+          role: img.role ?? null,
+          spec: img.spec,
+        });
       }
     }
     return out;
   }, [data, characterId]);
 
-  const [active, setActive] = useState<GalleryImage | null>(null);
+  const open = (img: GalleryImage) =>
+    navigate(`/portrait/${img.imageId}`, { state: { spec: img.spec } });
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,26 +83,19 @@ export function GalleryPage({
         </Text>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {images.map((img) => (
-            <ImageTile
-              key={img.imageId}
-              imageId={img.imageId}
-              alt={img.role ?? 'generation'}
-              label={img.role ?? undefined}
-              onClick={() => setActive(img)}
-            />
-          ))}
+          {images.map((img) => {
+            const name = img.characterId ? nameByCharId.get(img.characterId) : undefined;
+            return (
+              <ImageTile
+                key={img.imageId}
+                imageId={img.imageId}
+                alt={name ?? img.role ?? 'generation'}
+                label={name ?? img.role ?? undefined}
+                onClick={() => open(img)}
+              />
+            );
+          })}
         </div>
-      )}
-
-      {active && (
-        <ImageLightbox
-          imageId={active.imageId}
-          characterId={active.characterId}
-          characterName={active.characterId ? (nameById.get(active.characterId) ?? null) : null}
-          role={active.role}
-          onClose={() => setActive(null)}
-        />
       )}
     </div>
   );
