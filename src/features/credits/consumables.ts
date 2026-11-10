@@ -40,7 +40,7 @@ const REVENUECAT_WEB_KEY = import.meta.env.VITE_REVENUECAT_API_KEY_WEB as
   | undefined;
 
 /** Plain `fetch`-based `NetworkClient` (adds no auth of its own). */
-class FetchNetworkClient implements NetworkClient {
+export class FetchNetworkClient implements NetworkClient {
   async request<T = unknown>(
     url: string,
     options?: NetworkRequestOptions | null
