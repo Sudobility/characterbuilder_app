@@ -50,6 +50,11 @@ import {
 } from '../ui';
 
 const COUNTS = Array.from({ length: 10 }, (_, i) => String(i + 1));
+// When the user uploads a photo and ticks "Create lookalike", the photo is sent to
+// the image model as a reference and this clause is appended to the prompt so the
+// model keeps the person's identity while applying the traits the user changed.
+const LOOKALIKE_CLAUSE =
+  'Render the SAME person shown in the reference photo: keep their identity, face shape and bone structure. Apply the appearance described here, changing only the traits that differ from the photo (such as hairstyle, hair colour, facial hair, age or expression).';
 // "Look" 1..10 → conformity 0.1..1.0: the fraction of unset traits cast to the
 // most common ("beautiful") value for the demographic; the rest are sampled for
 // variety. 'Any' = natural (no typicality bias). 10 = the most typical face.
@@ -156,6 +161,11 @@ export function EditorPage() {
   const [description, setDescription] = useState<string>('');
   const [describeError, setDescribeError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  // The uploaded headshot (downscaled data URL) and whether to generate a lookalike
+  // of it. When `lookalike` is on, the photo is passed as a reference image so the
+  // generated images keep that person's identity, changing only the edited traits.
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const [lookalike, setLookalike] = useState<boolean>(false);
   const [styleGroupId, setStyleGroupId] = useState(() =>
     visualStyleGroups.find((group) => group.styles.some((style) => style.id === params.artStyle))?.id
       ?? visualStyleGroups[0]!.id
@@ -246,6 +256,9 @@ export function EditorPage() {
     setPhotoError(null);
     try {
       const image = await fileToDownscaledDataUrl(file);
+      // Keep the photo so it can be used as a lookalike reference, even if the
+      // vision model reads no usable traits from it.
+      setPhotoDataUrl(image);
       const { spec: read } = await analyze.mutateAsync({
         image,
         ...(Object.keys(buildDemographics()).length > 0
@@ -260,6 +273,12 @@ export function EditorPage() {
     } catch (e) {
       setPhotoError(e instanceof Error ? e.message : 'Could not read the photo');
     }
+  };
+
+  const clearPhoto = () => {
+    setPhotoDataUrl(null);
+    setLookalike(false);
+    setPhotoError(null);
   };
 
   const onGenerate = async () => {
@@ -280,12 +299,19 @@ export function EditorPage() {
       }
     }
 
+    // Lookalike: send the uploaded photo as a reference image so the result keeps
+    // that person's identity, and tell the model to change only the edited traits.
+    const useLookalike = lookalike && !!photoDataUrl;
+
     generate.mutate(
       {
         spec,
         params,
         ...(cid ? { characterId: cid } : {}),
         ...(Object.keys(demographics).length > 0 ? { demographics } : {}),
+        ...(useLookalike
+          ? { referenceImage: photoDataUrl, description: LOOKALIKE_CLAUSE }
+          : {}),
       },
       {
         onSuccess: (g) => setJobId(g.id),
@@ -441,6 +467,38 @@ export function EditorPage() {
                   </Text>
                 )}
               </div>
+
+              {photoDataUrl && (
+                <div className="flex flex-col gap-2 rounded-md border border-theme-border bg-theme-bg-secondary p-3">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={photoDataUrl}
+                      alt="uploaded reference"
+                      className="h-16 w-16 shrink-0 rounded object-cover"
+                    />
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2">
+                        <Checkbox checked={lookalike} onChange={setLookalike} />
+                        <Text as="span" size="sm" className="font-medium">
+                          Create lookalike
+                        </Text>
+                      </label>
+                      <Text as="p" size="xs" className="text-theme-text-secondary">
+                        {lookalike
+                          ? 'Generated images will keep this person, changing only the traits you edit below.'
+                          : 'Off: the photo is only used to read traits — a brand-new face is generated.'}
+                      </Text>
+                      <button
+                        type="button"
+                        className="self-start text-xs text-theme-text-secondary underline"
+                        onClick={clearPhoto}
+                      >
+                        Remove photo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

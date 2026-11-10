@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   isInsufficientCredits,
+  useAnalyze,
   useDescribe,
   useGenerate,
   useGeneration,
@@ -14,11 +15,13 @@ import {
 } from '@sudobility/characterbuilder_types';
 import { AncestryPicker, pathForAncestry, pathLabel } from '../components/AncestryPicker';
 import { ImageTile } from '../components/ImageTile';
+import { fileToDownscaledDataUrl } from '../lib/image';
 import {
   Button,
   Card,
   CardContent,
   CardHeader,
+  Checkbox,
   Heading,
   Input,
   Label,
@@ -41,6 +44,12 @@ const SEX_ANY = 'Any';
 const SEX_OPTIONS = [SEX_ANY, ...SEXES];
 const COUNTS = Array.from({ length: 10 }, (_, i) => String(i + 1));
 const ART_STYLES = visualStyleGroups.flatMap((g) => g.styles);
+
+// When a photo is uploaded and "Create lookalike" is on, the photo is sent to the
+// image model as a reference and this clause is appended to the prompt so the model
+// keeps the person's identity while applying the traits the user described/changed.
+const LOOKALIKE_CLAUSE =
+  'Render the SAME person shown in the reference photo: keep their identity, face shape and bone structure. Apply the appearance described here, changing only the traits that differ from the photo (such as hairstyle, hair colour, facial hair, age or expression).';
 
 // Representative age (years) per age band, so an "in his 60s" description that
 // describe reads as `ageBand: 'sixties'` pre-fills the Age field with 65.
@@ -87,8 +96,14 @@ export function SimpleGeneratePage() {
   // the 'style' screen (the last step).
   const [step, setStep] = useState<'prompt' | 'essentials' | 'style'>('prompt');
   const [prompt, setPrompt] = useState('');
-  // Traits read from the prompt when leaving screen 1 (describe runs on Continue).
+  // Traits read from the prompt (describe on Continue) and/or an uploaded photo.
   const [inferredSpec, setInferredSpec] = useState<FaceSpec>({});
+  // An uploaded headshot (downscaled data URL) and whether to generate a lookalike
+  // of it. With `lookalike` on, the photo is sent as a reference image so results
+  // keep that person's identity, changing only the traits the prompt describes.
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const [lookalike, setLookalike] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   // Essentials.
   const [age, setAge] = useState('');
@@ -107,6 +122,7 @@ export function SimpleGeneratePage() {
   const [error, setError] = useState<string | null>(null);
 
   const describe = useDescribe();
+  const analyze = useAnalyze();
   const generate = useGenerate();
   const { data: job } = useGeneration(jobId ?? undefined);
   const jobActive = !!jobId && job?.status !== 'succeeded' && job?.status !== 'failed';
@@ -120,37 +136,67 @@ export function SimpleGeneratePage() {
     return demographics;
   };
 
+  // Reflect read traits (from the prompt or a photo) in the visible essentials, so
+  // the user sees and can adjust what was inferred. Only overwrites a control when
+  // the read traits actually name it; silence leaves it as the user left it.
+  const prefillEssentials = (spec: FaceSpec) => {
+    if (spec.sex) setSex(spec.sex);
+    if (typeof spec.ageYears === 'number') setAge(String(spec.ageYears));
+    else if (spec.ageBand && AGE_BAND_MID[spec.ageBand])
+      setAge(String(AGE_BAND_MID[spec.ageBand]));
+    const ethPath = pathForAncestry(spec.ancestry, spec.ancestryNote);
+    if (ethPath.length > 0) setAncestryPath(ethPath);
+  };
+
+  // Read the traits visible in an uploaded headshot (vision), keep the photo for an
+  // optional lookalike, and prefill the essentials. Keeping the photo even when no
+  // traits are read lets the user still generate a lookalike from it.
+  const onPhoto = async (file: File | undefined) => {
+    if (!file || analyze.isPending) return;
+    setPhotoError(null);
+    try {
+      const image = await fileToDownscaledDataUrl(file);
+      setPhotoDataUrl(image);
+      const { spec: read } = await analyze.mutateAsync({ image });
+      if (Object.keys(read).length === 0) {
+        setPhotoError('No traits could be read from that photo, but you can still create a lookalike.');
+        return;
+      }
+      setInferredSpec((prev) => ({ ...prev, ...read }));
+      prefillEssentials(read);
+    } catch (e) {
+      setPhotoError(e instanceof Error ? e.message : 'Could not read the photo');
+    }
+  };
+
+  const clearPhoto = () => {
+    setPhotoDataUrl(null);
+    setLookalike(false);
+    setPhotoError(null);
+  };
+
   // Leaving screen 1: read the traits the prompt implies (spinner on Continue),
   // then show the essentials. A failure is non-fatal — the raw prompt still drives
   // the image (it rides along in `description`) and the caster fills every unset
   // trait, so we advance either way.
   const onContinue = async () => {
     const text = prompt.trim();
-    if (!text || describe.isPending) return;
-    let spec: FaceSpec = {};
-    try {
-      const res = await describe.mutateAsync({ description: text });
-      spec = res.spec;
-    } catch {
-      spec = {};
+    // Advance when there's a prompt and/or an uploaded photo to work from.
+    if ((!text && !photoDataUrl) || describe.isPending) return;
+    if (text) {
+      let spec: FaceSpec = {};
+      try {
+        const res = await describe.mutateAsync({ description: text });
+        spec = res.spec;
+      } catch {
+        spec = {};
+      }
+      // Merge the prompt's traits over anything a photo already read.
+      setInferredSpec((prev) => ({ ...prev, ...spec }));
+      // Reflect what the prompt said in the visible essentials (describe is
+      // authoritative for the current text; silence leaves controls as-is).
+      prefillEssentials(spec);
     }
-    setInferredSpec(spec);
-
-    // Reflect what the prompt said in the visible essentials, so the user can see
-    // (and adjust) the traits that were read — just like the advanced editor fills
-    // its demographic controls. Describe is authoritative for the current prompt:
-    // overwrite Age/Sex when the text implies them (so changing the prompt and
-    // continuing again updates them), and leave them as-is when it doesn't.
-    if (spec.sex) setSex(spec.sex);
-    if (typeof spec.ageYears === 'number') setAge(String(spec.ageYears));
-    else if (spec.ageBand && AGE_BAND_MID[spec.ageBand])
-      setAge(String(AGE_BAND_MID[spec.ageBand]));
-    // Ethnicity: map the inferred ancestry (+ sub-population note) onto the picker
-    // path. This both shows it and feeds `demographics.subPopulation` at generate
-    // time — the caster honors a named sub-population (e.g. "Chinese"), whereas the
-    // broad `spec.ancestry` alone only picks a RANDOM East-Asian leaf.
-    const ethPath = pathForAncestry(spec.ancestry, spec.ancestryNote);
-    if (ethPath.length > 0) setAncestryPath(ethPath);
 
     setStep('essentials');
   };
@@ -173,10 +219,16 @@ export function SimpleGeneratePage() {
     // image model too. No character is created up front: the user names the
     // images they want to keep afterward (on each image's portrait screen).
     const conformity = look === LOOK_ANY ? 0 : Number(look) / 10;
+    // Lookalike: send the uploaded photo as a reference image and prepend the
+    // identity-preserving clause so the result is the same person with the
+    // described changes. Off → the photo was only used to read traits.
+    const useLookalike = lookalike && !!photoDataUrl;
+    const description = useLookalike ? `${LOOKALIKE_CLAUSE} ${text}`.trim() : text;
     generate.mutate(
       {
         spec,
-        description: text,
+        description,
+        ...(useLookalike ? { referenceImage: photoDataUrl } : {}),
         ...(Object.keys(demographics).length > 0 ? { demographics } : {}),
         params: {
           count: Number(count),
@@ -237,10 +289,65 @@ export function SimpleGeneratePage() {
                 rows={5}
                 placeholder="e.g. A weathered fisherman in his 60s with deep-set grey eyes, a broad crooked nose, a thick salt-and-pepper beard and sun-creased olive skin, looking out to sea."
               />
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-theme-border pt-3">
+                <Text as="span" size="sm" className="text-theme-text-secondary">
+                  …or read the traits from a headshot:
+                </Text>
+                <label className="inline-flex cursor-pointer items-center rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80">
+                  {analyze.isPending ? 'Analyzing…' : 'Upload Photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={analyze.isPending}
+                    onChange={(e) => {
+                      onPhoto(e.target.files?.[0]);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+                {photoError && (
+                  <Text as="span" size="sm" className="text-red-500">
+                    {photoError}
+                  </Text>
+                )}
+              </div>
+
+              {photoDataUrl && (
+                <div className="flex items-start gap-3 rounded-md border border-theme-border bg-theme-bg-secondary p-3">
+                  <img
+                    src={photoDataUrl}
+                    alt="uploaded reference"
+                    className="h-16 w-16 shrink-0 rounded object-cover"
+                  />
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2">
+                      <Checkbox checked={lookalike} onChange={setLookalike} />
+                      <Text as="span" size="sm" className="font-medium">
+                        Create lookalike
+                      </Text>
+                    </label>
+                    <Text as="p" size="xs" className="text-theme-text-secondary">
+                      {lookalike
+                        ? 'Generated images will look like this person, changing only the traits your prompt and essentials describe.'
+                        : 'Off: the photo is only used to read traits — a brand-new face is generated.'}
+                    </Text>
+                    <button
+                      type="button"
+                      className="self-start text-xs text-theme-text-secondary underline"
+                      onClick={clearPhoto}
+                    >
+                      Remove photo
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end">
                 <Button
                   variant="primary"
-                  disabled={!prompt.trim() || describe.isPending}
+                  disabled={(!prompt.trim() && !photoDataUrl) || describe.isPending || analyze.isPending}
                   onClick={onContinue}
                 >
                   {describe.isPending ? 'Reading prompt…' : 'Continue'}
@@ -427,14 +534,6 @@ export function SimpleGeneratePage() {
           )}
         </>
       )}
-
-      <Text as="p" size="sm" className="text-center text-theme-text-secondary">
-        Need full control over every trait?{' '}
-        <Link to="/advanced" className="underline">
-          Open the advanced editor
-        </Link>
-        .
-      </Text>
     </div>
   );
 }
