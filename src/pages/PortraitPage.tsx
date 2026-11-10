@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { LocalizedLink } from '../components/layout/LocalizedLink';
 import {
   useCharacter,
   useCharacterBuilderClient,
@@ -27,7 +29,7 @@ import { Button, Card, CardContent, Heading, Input, Label, Spinner, Text } from 
  */
 export function PortraitPage() {
   const { imageId = '' } = useParams();
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
   const location = useLocation();
   const client = useCharacterBuilderClient();
 
@@ -160,9 +162,9 @@ export function PortraitPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 py-2">
                 <Text as="p">
                   Part of{' '}
-                  <Link to={`/characters/${ownerId}`} className="font-medium underline">
+                  <LocalizedLink to={`/characters/${ownerId}`} className="font-medium underline">
                     {owner?.name ?? 'character'}
-                  </Link>
+                  </LocalizedLink>
                 </Text>
               </div>
             </CardContent>

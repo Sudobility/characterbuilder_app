@@ -1,5 +1,7 @@
 import { type ReactNode, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { stripLangPrefix } from '@sudobility/components';
 import {
   AppPageLayout,
   type AuthMenuItem,
@@ -7,6 +9,8 @@ import {
   type TopBarConfig,
 } from '@sudobility/building_blocks';
 import { APP_NAME, APP_VERSION, COMPANY_NAME, COPYRIGHT_YEAR } from '../../config';
+import { LANGUAGE_CONFIGS } from '../../config/languages';
+import { useLocalizedNavigate } from '../../hooks/useLocalizedNavigate';
 import { PageConfigContext } from '../../context/pageConfigContextDef';
 import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
 import { AuthActionAdapter } from './AuthActionAdapter';
@@ -24,7 +28,8 @@ import { LinkWrapper } from './LinkWrapper';
  * `useTopBarConfig`/`useFooterConfig` translation hooks.
  */
 export function ScreenContainer({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
+  const { t } = useTranslation('common');
+  const { navigate, switchLanguage, currentLanguage } = useLocalizedNavigate();
   const location = useLocation();
 
   // Pages override the route-level layout (scrollable/maxWidth/padding) via
@@ -35,25 +40,30 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
   // Automatic breadcrumbs from the URL (hidden on home, which is just [Home]).
   const breadcrumbItems = useBreadcrumbs();
 
-  // `/` is home; everything else gets the compact one-line footer.
-  const isHome = location.pathname === '/';
+  // `/<lang>` is home; everything else gets the compact one-line footer. Strip
+  // the language prefix before comparing.
+  const isHome = stripLangPrefix(location.pathname) === '/';
 
   // Shown in the top-right avatar dropdown when signed in (AuthActionAdapter
   // maps these and appends sign-out).
   const authenticatedMenuItems: AuthMenuItem[] = [
-    { id: 'dashboard', label: 'Dashboard', onClick: () => navigate('/dashboard') },
-    { id: 'gallery', label: 'Gallery', onClick: () => navigate('/dashboard/gallery') },
-    { id: 'characters', label: 'Characters', onClick: () => navigate('/dashboard/characters') },
-    { id: 'history', label: 'History', onClick: () => navigate('/dashboard/history') },
-    { id: 'sheets', label: 'Sheets', onClick: () => navigate('/sheets') },
-    { id: 'credits', label: 'Credits', onClick: () => navigate('/dashboard/credits') },
+    { id: 'dashboard', label: t('nav.dashboard'), onClick: () => navigate('/dashboard') },
+    { id: 'gallery', label: t('nav.gallery'), onClick: () => navigate('/dashboard/gallery') },
+    { id: 'characters', label: t('nav.characters'), onClick: () => navigate('/dashboard/characters') },
+    { id: 'history', label: t('nav.history'), onClick: () => navigate('/dashboard/history') },
+    { id: 'sheets', label: t('nav.sheets'), onClick: () => navigate('/sheets') },
+    { id: 'credits', label: t('nav.credits'), onClick: () => navigate('/dashboard/credits') },
   ];
 
   const topBar: TopBarConfig = {
     variant: 'firebase',
     topBarVariant: 'app',
     sticky: true,
-    hideLanguageSelector: true,
+    // The built-in topbar language selector, wired to the `/:lang` router.
+    hideLanguageSelector: false,
+    languages: LANGUAGE_CONFIGS,
+    currentLanguage,
+    onLanguageChange: (code: string) => switchLanguage(code as typeof currentLanguage),
     LinkComponent: LinkWrapper,
     AuthActionComponent: AuthActionAdapter,
     authenticatedMenuItems,
@@ -70,16 +80,15 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
     // avatar dropdown (authenticatedMenuItems), not the top bar; the top bar
     // keeps only the public, site-wide links.
     menuItems: [
-      { id: 'docs', label: 'Docs', href: '/docs' },
-      { id: 'tutorials', label: 'Tutorials', href: '/tutorials' },
-      { id: 'about', label: 'About', href: '/about' },
-      { id: 'contact', label: 'Contact', href: '/contact' },
+      { id: 'docs', label: t('nav.docs'), href: '/docs' },
+      { id: 'tutorials', label: t('nav.tutorials'), href: '/tutorials' },
+      { id: 'resources', label: t('nav.resources'), href: '/resources' },
     ],
   };
 
   const legalLinks = [
-    { label: 'Privacy', href: '/privacy' },
-    { label: 'Terms', href: '/terms' },
+    { label: t('footer.privacy'), href: '/privacy' },
+    { label: t('footer.terms'), href: '/terms' },
   ];
 
   const footer: FooterConfig = isHome
@@ -88,38 +97,35 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
         logo: { appName: APP_NAME },
         companyName: COMPANY_NAME,
         copyrightYear: COPYRIGHT_YEAR,
-        rightsText: 'All rights reserved',
-        description: 'Design a face from structured features, then cast it with AI.',
+        rightsText: t('footer.rights'),
+        description: t('footer.description'),
         version: APP_VERSION,
         LinkComponent: LinkWrapper,
         linkSections: [
           {
-            title: 'Create',
+            title: t('footer.create'),
             links: [
-              { label: 'Gallery', href: '/dashboard/gallery' },
-              { label: 'History', href: '/dashboard/history' },
-              { label: 'Sheets', href: '/sheets' },
-              { label: 'Credits', href: '/dashboard/credits' },
+              { label: t('nav.gallery'), href: '/dashboard/gallery' },
+              { label: t('nav.history'), href: '/dashboard/history' },
+              { label: t('nav.sheets'), href: '/sheets' },
+              { label: t('nav.credits'), href: '/dashboard/credits' },
             ],
           },
           {
-            title: 'Learn',
+            title: t('footer.learn'),
             links: [
-              { label: 'Docs', href: '/docs' },
-              { label: 'Tutorials', href: '/tutorials' },
+              { label: t('nav.docs'), href: '/docs' },
+              { label: t('nav.tutorials'), href: '/tutorials' },
+              { label: t('nav.resources'), href: '/resources' },
             ],
           },
           {
-            title: 'Company',
-            links: [
-              { label: 'About', href: '/about' },
-              { label: 'Contact', href: '/contact' },
-              ...legalLinks,
-            ],
+            title: t('footer.legal'),
+            links: [...legalLinks],
           },
           {
-            title: 'More',
-            links: [{ label: 'Sitemap', href: '/sitemap' }],
+            title: t('footer.more'),
+            links: [{ label: t('footer.sitemap'), href: '/sitemap' }],
           },
         ],
       }
@@ -127,7 +133,7 @@ export function ScreenContainer({ children }: { children: ReactNode }) {
         variant: 'compact',
         companyName: COMPANY_NAME,
         copyrightYear: COPYRIGHT_YEAR,
-        rightsText: 'All rights reserved',
+        rightsText: t('footer.rights'),
         version: APP_VERSION,
         links: legalLinks,
         LinkComponent: LinkWrapper,

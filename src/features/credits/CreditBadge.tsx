@@ -3,7 +3,7 @@
  * Its own subscriber of `useBalance` so reading it does not re-render the
  * surrounding chrome.
  */
-import { Link } from 'react-router-dom';
+import { LocalizedLink as Link } from '../../components/layout/LocalizedLink';
 import { useBalance } from '@sudobility/consumables_client';
 import { CreditBalanceBadge } from '@sudobility/consumables_pages';
 

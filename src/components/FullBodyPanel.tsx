@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   isInsufficientCredits,
@@ -52,7 +52,7 @@ export function FullBodyPanel({
   fromSheet?: boolean;
 }) {
   const client = useCharacterBuilderClient();
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
   const qc = useQueryClient();
 
   const [instructions, setInstructions] = useState('');

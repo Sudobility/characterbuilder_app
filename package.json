@@ -11,6 +11,8 @@
     "build": "tsc --noEmit -p tsconfig.build.json && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "localize": "SCRIPT=$(mktemp) && curl -fsSL https://raw.githubusercontent.com/johnqh/workflows/main/scripts/localize_batch.cjs -o $SCRIPT && WHISPERLY_API_KEY=$(grep -h '^WHISPERLY_API_KEY=' ~/.develop/.keys ~/.keys ~/.keys.txt 2>/dev/null | head -1 | cut -d= -f2-) node $SCRIPT ./public/locales https://api.whisperly.dev/api/v1/translate/jie9cytr/characterbuilder && rm -f $SCRIPT && prettier public/locales --write",
+    "localize_local": "SCRIPT=$(mktemp) && curl -fsSL https://raw.githubusercontent.com/johnqh/workflows/main/scripts/localize_batch.cjs -o $SCRIPT && node $SCRIPT ./public/locales http://localhost:8021/api/v1/translate/jie9cytr/characterbuilder && rm -f $SCRIPT && prettier public/locales --write",
     "process:static": "curl -sL https://raw.githubusercontent.com/johnqh/workflows/main/scripts/process-static-files.ts -o /tmp/process-static-files.ts && bunx tsx /tmp/process-static-files.ts",
     "seo:fetch": "curl -fsSL https://raw.githubusercontent.com/johnqh/workflows/main/scripts/generate-seo-assets-v2.mjs -o /tmp/generate-seo-assets.mjs",
     "generate:sitemap": "bun run seo:fetch && node /tmp/generate-seo-assets.mjs public",

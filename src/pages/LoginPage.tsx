@@ -1,4 +1,6 @@
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { LocalizedNavigate } from '../components/routing/LocalizedNavigate';
 import { LoginPage as LoginPageComponent } from '@sudobility/building_blocks';
 import { APP_NAME } from '../config';
 import { useAuth } from '../auth/AuthContext';
@@ -19,11 +21,11 @@ export function LoginPage() {
   const { user } = useAuth();
   const { available, hasGoogle, handlers, pageText } = useLoginHandlers();
   const location = useLocation();
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
 
   // Return the visitor where they were headed before the sign-in redirect, or to their characters.
   const from = (location.state as { from?: string } | null)?.from ?? '/characters';
-  if (user) return <Navigate to={from} replace />;
+  if (user) return <LocalizedNavigate to={from} replace />;
 
   if (!available) {
     return (

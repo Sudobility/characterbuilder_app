@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { LocalizedLink } from '../components/layout/LocalizedLink';
 import {
   useAnalyze,
   useCharacter,
@@ -104,7 +106,7 @@ function ParamSelect(props: {
 
 export function EditorPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
   const store = useDraftStore();
   const { data: character } = useCharacter(id);
 
@@ -396,9 +398,9 @@ export function EditorPage() {
           Redo
         </Button>
         {id && (
-          <Link to={`/sheets/${id}`}>
+          <LocalizedLink to={`/sheets/${id}`}>
             <Button variant="secondary">Character sheets</Button>
-          </Link>
+          </LocalizedLink>
         )}
       </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
 import { MasterListItem } from '@sudobility/components';
 import { MasterDetailPage } from '../components/layout/MasterDetailPage';
 import { Button, Card, CardContent, Heading, Text } from '../ui';
@@ -33,7 +34,7 @@ function isSection(v: string | undefined): v is SectionId {
 
 export function UserDashboardPage() {
   const { section: raw } = useParams();
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
   const section: SectionId = isSection(raw) ? raw : 'characters';
 
   // On desktop both panels show; on mobile a selection switches to the detail.

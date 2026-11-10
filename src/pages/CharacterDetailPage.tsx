@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
 import {
   useCharacter,
   useCharacterImages,
@@ -18,7 +19,7 @@ import { Button, Card, CardContent, Heading, Input, Label, Spinner, Text } from 
  */
 export function CharacterDetailPage() {
   const { id = '' } = useParams();
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
 
   const { data: character, isLoading } = useCharacter(id);
   const { data: images } = useCharacterImages(id);

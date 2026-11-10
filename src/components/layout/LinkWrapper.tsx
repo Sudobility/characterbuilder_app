@@ -1,11 +1,11 @@
 import { type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { LocalizedLink } from './LocalizedLink';
 
 /**
- * Bridges `building_blocks`' `href`-based link contract (topbar, footer) to
- * react-router's `to`-based `<Link>`. Without it the chrome renders plain
- * anchors and every nav/footer link does a full page reload instead of a
- * client-side navigation. (screenwriter_app/music_app `LinkWrapper` pattern.)
+ * Bridges `building_blocks`' `href`-based link contract (topbar, footer,
+ * breadcrumbs) to a language-aware router link, so the chrome does client-side
+ * navigation AND keeps the current `/:lang` prefix. (screenwriter_app/music_app
+ * `LinkWrapper` pattern, made locale-aware.)
  */
 export function LinkWrapper({
   href,
@@ -19,8 +19,8 @@ export function LinkWrapper({
   onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <Link to={href} className={className} onClick={onClick}>
+    <LocalizedLink to={href} className={className} onClick={onClick}>
       {children}
-    </Link>
+    </LocalizedLink>
   );
 }

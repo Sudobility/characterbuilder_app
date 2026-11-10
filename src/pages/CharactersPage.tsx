@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
 import { useCharacters } from '@sudobility/characterbuilder_client';
 import { ImageTile } from '../components/ImageTile';
 import { Button, Heading, Spinner, Text } from '../ui';
@@ -12,7 +12,7 @@ import { Button, Heading, Spinner, Text } from '../ui';
  */
 export function CharactersPage() {
   const { data, isLoading } = useCharacters();
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
 
   const named = useMemo(
     () => (data?.items ?? []).filter((c) => !!c.name),

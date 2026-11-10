@@ -1,4 +1,5 @@
 import type { AuthActionProps } from '@sudobility/building_blocks';
+import { useTranslation } from 'react-i18next';
 import { Avatar, Button, Dropdown } from '../../ui';
 import { useAuth } from '../../auth/AuthContext';
 
@@ -40,6 +41,7 @@ export function AuthActionAdapter({
   dropdownAlign = 'right',
 }: AuthActionProps) {
   const { user, signOut } = useAuth();
+  const { t } = useTranslation('common');
 
   if (!user) {
     return (
@@ -49,12 +51,12 @@ export function AuthActionAdapter({
         onClick={() => onLoginClick?.()}
         data-testid="log-in-button"
       >
-        Log in
+        {t('nav.logIn')}
       </Button>
     );
   }
 
-  const name = user.displayName ?? user.email ?? 'Account';
+  const name = user.displayName ?? user.email ?? t('nav.account');
 
   // Each config item becomes a real entry; `dividerAfter` becomes its own
   // divider entry. A divider then sign-out close the menu.
@@ -66,7 +68,7 @@ export function AuthActionAdapter({
   if (items.length > 0 && !items[items.length - 1].separator) {
     items.push(divider('sign-out-divider'));
   }
-  items.push({ id: 'sign-out', label: 'Sign out', onClick: () => void signOut() });
+  items.push({ id: 'sign-out', label: t('nav.signOut'), onClick: () => void signOut() });
 
   return (
     <Dropdown

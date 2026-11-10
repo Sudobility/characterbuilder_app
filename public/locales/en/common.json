@@ -1,0 +1,37 @@
+{
+  "nav": {
+    "docs": "Docs",
+    "tutorials": "Tutorials",
+    "resources": "Resources",
+    "dashboard": "Dashboard",
+    "gallery": "Gallery",
+    "characters": "Characters",
+    "history": "History",
+    "sheets": "Sheets",
+    "credits": "Credits",
+    "account": "Account",
+    "signOut": "Sign out",
+    "logIn": "Log in"
+  },
+  "footer": {
+    "create": "Create",
+    "learn": "Learn",
+    "legal": "Legal",
+    "more": "More",
+    "sitemap": "Sitemap",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "description": "Design a face from structured features, then cast it with AI.",
+    "rights": "All rights reserved"
+  },
+  "actions": {
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "generate": "Generate",
+    "remove": "Remove",
+    "download": "Download"
+  }
+}

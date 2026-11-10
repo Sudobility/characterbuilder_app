@@ -1,10 +1,12 @@
 import { AppSitemapPage, type AppSitemapPageProps } from '@sudobility/building_blocks';
 import { APP_NAME } from '../config';
+import { LANGUAGE_CONFIGS } from '../config/languages';
 import { LinkWrapper } from '../components/layout/LinkWrapper';
 
 /**
- * Public "Sitemap" page, built on `building_blocks`' `AppSitemapPage`. This app
- * is single-locale, so no language options are offered.
+ * Public "Sitemap" page, built on `building_blocks`' `AppSitemapPage`. Lists
+ * every page plus the supported languages (the site is served under a `/:lang`
+ * prefix).
  */
 export function SitemapPage() {
   const props: AppSitemapPageProps = {
@@ -12,14 +14,14 @@ export function SitemapPage() {
       title: 'Sitemap',
       subtitle: `Every page in ${APP_NAME}.`,
       languagesSectionTitle: 'Languages',
-      languagesDescription: '',
+      languagesDescription: 'Available in 15 languages.',
       quickLinksTitle: 'Quick links',
     },
-    languages: [],
+    languages: LANGUAGE_CONFIGS.map((l) => ({ code: l.code, name: l.name, flag: l.flag })),
     LinkComponent: LinkWrapper,
     quickLinks: [
       { path: '/characters', label: 'Open the app', variant: 'primary' },
-      { path: '/contact', label: 'Contact', variant: 'outline', icon: 'envelope' },
+      { path: '/resources', label: 'Resources', variant: 'outline', icon: 'document' },
     ],
     sections: [
       {
@@ -37,16 +39,15 @@ export function SitemapPage() {
         title: 'Learn',
         icon: 'document',
         links: [
-          { path: '/docs', label: 'Documentation', description: 'How the app works, field by field' },
+          { path: '/docs', label: 'Documentation', description: 'How the app works, step by step' },
           { path: '/tutorials', label: 'Tutorials', description: 'Short, guided walkthroughs' },
+          { path: '/resources', label: 'Resources', description: 'Tools for AI filmmaking' },
         ],
       },
       {
-        title: 'Company',
+        title: 'Legal',
         icon: 'document',
         links: [
-          { path: '/about', label: 'About', description: `What ${APP_NAME} is and who it is for` },
-          { path: '/contact', label: 'Contact', description: 'Reach the team' },
           { path: '/privacy', label: 'Privacy Policy' },
           { path: '/terms', label: 'Terms of Service' },
         ],

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { LocalizedLink } from '../components/layout/LocalizedLink';
 import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
 import type { FaceSpec, Generation } from '@sudobility/characterbuilder_types';
 import { ImageTile } from '../components/ImageTile';
@@ -42,7 +43,7 @@ function timeAgo(iso: string): string {
 export function JobHistoryPage() {
   const { data, isLoading } = useGenerations({ limit: 50 });
   const { data: chars } = useCharacters();
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
     chars?.items.forEach((c) => {
@@ -113,12 +114,12 @@ function JobRow({
               {kind}
             </Text>
             {g.characterId && (
-              <Link
+              <LocalizedLink
                 to={`/characters/${g.characterId}`}
                 className="text-sm text-theme-accent hover:underline"
               >
                 {characterName ?? 'character'}
-              </Link>
+              </LocalizedLink>
             )}
             <span className="flex-1" />
             {g.creditsSpent > 0 && (

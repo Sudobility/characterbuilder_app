@@ -1,0 +1,33 @@
+{
+  "hero": {
+    "tagline": "Design a character's face from structured features, then cast it with AI — consistent, repeatable, and yours to iterate on.",
+    "ctaSignedOut": "Get started",
+    "ctaSignedIn": "Go to your characters"
+  },
+  "features": {
+    "structured": {
+      "title": "Structured faces, not vague prompts",
+      "body": "Describe a character from dozens of concrete facial features — brow, jaw, eyes, nose, lips, skin — instead of hoping a sentence lands."
+    },
+    "casting": {
+      "title": "AI casting images",
+      "body": "Turn a face spec into consistent, repeatable casting images, ready to drop into a lookbook or pitch."
+    },
+    "demographics": {
+      "title": "Demographics & expression",
+      "body": "Dial in age, build, expression and health state, then re-render the same character in a new shot or framing."
+    },
+    "shots": {
+      "title": "Shots & sizes",
+      "body": "Choose the shot and image size that fit where the render is going — a headshot, a full figure, a wide plate."
+    },
+    "gallery": {
+      "title": "Everything in one gallery",
+      "body": "Every generation is saved and browsable, so you can compare takes and come back to the one that worked."
+    },
+    "credits": {
+      "title": "Pay only for what you render",
+      "body": "Start with free credits and top up as you go. No subscription to design a character."
+    }
+  }
+}

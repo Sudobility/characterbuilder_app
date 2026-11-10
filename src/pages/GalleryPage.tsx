@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
 import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
 import type { FaceSpec } from '@sudobility/characterbuilder_types';
 import { ImageTile } from '../components/ImageTile';
@@ -31,7 +31,7 @@ export function GalleryPage({
 } = {}) {
   const { data, isLoading } = useGenerations();
   const { data: chars } = useCharacters();
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
 
   // Character name by character id, so a headshot can be badged with its name.
   const nameByCharId = useMemo(() => {

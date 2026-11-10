@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
 import {
   isInsufficientCredits,
   useAnalyze,
@@ -90,7 +90,7 @@ function Field(props: {
 }
 
 export function SimpleGeneratePage() {
-  const navigate = useNavigate();
+  const { navigate } = useLocalizedNavigate();
 
   // Three screens: 'prompt' → 'essentials' → 'style'. Generate + results live on
   // the 'style' screen (the last step).
