@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
 import {
   useCharacter,
   useCharacterImages,
   useRemoveCharacterImage,
   useUpdateCharacter,
 } from '@sudobility/characterbuilder_client';
-import { ImageTile } from '../components/ImageTile';
-import { BreadcrumbBuilder } from '../utils/BreadcrumbBuilder';
+import { ImageTile } from '@sudobility/characterbuilder_ui';
+import { BreadcrumbBuilder } from '@sudobility/characterbuilder_ui';
 import { Button, Card, CardContent, Heading, Input, Label, Spinner, Text } from '../ui';
 
 /**

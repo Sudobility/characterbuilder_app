@@ -4,8 +4,8 @@ import { LanguageRedirect, LanguageValidator } from '@sudobility/components';
 import { useAuth } from './auth/AuthContext';
 import { ScreenContainer } from './components/layout/ScreenContainer';
 import { RequireSignIn } from './components/shell/RequireSignIn';
-import { LocalizedNavigate } from './components/routing/LocalizedNavigate';
-import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, isLanguageSupported } from './config/languages';
+import { LocalizedNavigate } from '@sudobility/characterbuilder_ui';
+import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, isLanguageSupported } from '@sudobility/characterbuilder_ui';
 import { Spinner } from './ui';
 
 // Route-level code splitting: each page is a separate chunk, fetched on first

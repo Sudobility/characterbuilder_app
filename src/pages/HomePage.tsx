@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
 import { Button, Card, Grid, Heading, Section, Text } from '@sudobility/components';
 import { APP_NAME } from '../config';
 import { useAuth } from '../auth/AuthContext';

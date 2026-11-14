@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
-import { LocalizedLink } from '../components/layout/LocalizedLink';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
+import { LocalizedLink } from '@sudobility/characterbuilder_ui';
 import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
 import type { FaceSpec, Generation } from '@sudobility/characterbuilder_types';
-import { ImageTile } from '../components/ImageTile';
+import { ImageTile } from '@sudobility/characterbuilder_ui';
 import { Badge, Button, Card, CardContent, Heading, Spinner, Text } from '../ui';
 
 type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';

@@ -14,7 +14,7 @@
 import { useMemo } from 'react';
 import { Heading, Section, Text } from '@sudobility/components';
 import { ResourcesPageConnected } from '@sudobility/resources_pages';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
 import { initResourcesService } from '../features/resources/resources';
 
 export function ResourcesPage() {

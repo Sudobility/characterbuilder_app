@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
 import {
   isInsufficientCredits,
   useAnalyze,
@@ -13,9 +13,9 @@ import {
   type Demographics,
   type FaceSpec,
 } from '@sudobility/characterbuilder_types';
-import { AncestryPicker, pathForAncestry, pathLabel } from '../components/AncestryPicker';
-import { ImageTile } from '../components/ImageTile';
-import { fileToDownscaledDataUrl } from '../lib/image';
+import { AncestryPicker, pathForAncestry, pathLabel } from '@sudobility/characterbuilder_ui';
+import { ImageTile } from '@sudobility/characterbuilder_ui';
+import { fileToDownscaledDataUrl } from '@sudobility/characterbuilder_ui';
 import {
   Button,
   Card,

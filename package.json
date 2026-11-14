@@ -1,6 +1,6 @@
 {
   "name": "characterbuilder_app",
-  "version": "0.1.36",
+  "version": "0.1.37",
   "private": true,
   "type": "module",
   "description": "CharacterBuilder web app (Vite + React): login, FaceSpec editor, image generation, gallery, credits",
@@ -23,10 +23,11 @@
   "dependencies": {
     "@revenuecat/purchases-js": "~1.73.1",
     "@sudobility/auth_lib": "^0.0.130",
-    "@sudobility/building_blocks": "^0.0.376",
+    "@sudobility/building_blocks": "^0.0.378",
     "@sudobility/characterbuilder_client": "^0.1.18",
     "@sudobility/characterbuilder_lib": "^0.1.15",
     "@sudobility/characterbuilder_types": "^0.1.14",
+    "@sudobility/characterbuilder_ui": "^0.0.1",
     "@sudobility/components": "^5.3.69",
     "@sudobility/consumables_client": "^0.0.42",
     "@sudobility/consumables_pages": "^0.0.76",

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
 import { useCharacters } from '@sudobility/characterbuilder_client';
-import { ImageTile } from '../components/ImageTile';
+import { ImageTile } from '@sudobility/characterbuilder_ui';
 import { Button, Heading, Spinner, Text } from '../ui';
 
 /**

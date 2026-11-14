@@ -14,8 +14,8 @@ import {
   type Generation,
   type SheetRequestInput,
 } from '@sudobility/characterbuilder_types';
-import { ImageTile } from '../components/ImageTile';
-import { BreadcrumbBuilder } from '../utils/BreadcrumbBuilder';
+import { ImageTile } from '@sudobility/characterbuilder_ui';
+import { BreadcrumbBuilder } from '@sudobility/characterbuilder_ui';
 import {
   Badge,
   Button,

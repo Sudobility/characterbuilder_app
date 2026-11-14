@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
-import { LocalizedLink } from '../components/layout/LocalizedLink';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
+import { LocalizedLink } from '@sudobility/characterbuilder_ui';
 import {
   useAnalyze,
   useCharacter,
@@ -26,13 +26,13 @@ import {
   type FaceSpec,
 } from '@sudobility/characterbuilder_types';
 import { isInsufficientCredits } from '@sudobility/characterbuilder_client';
-import { FaceSpecGroupCard } from '../components/FaceSpecForm';
-import { AncestryPicker, pathLabel } from '../components/AncestryPicker';
-import { ImageTile } from '../components/ImageTile';
+import { FaceSpecGroupCard } from '@sudobility/characterbuilder_ui';
+import { AncestryPicker, pathLabel } from '@sudobility/characterbuilder_ui';
+import { ImageTile } from '@sudobility/characterbuilder_ui';
 import { GalleryPage } from './GalleryPage';
-import { BreadcrumbBuilder } from '../utils/BreadcrumbBuilder';
-import { useSetPageConfig } from '../hooks/usePageConfig';
-import { fileToDownscaledDataUrl } from '../lib/image';
+import { BreadcrumbBuilder } from '@sudobility/characterbuilder_ui';
+import { useSetPageConfig } from '@sudobility/building_blocks';
+import { fileToDownscaledDataUrl } from '@sudobility/characterbuilder_ui';
 import {
   Button,
   Card,

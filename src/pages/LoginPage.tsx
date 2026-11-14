@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
-import { LocalizedNavigate } from '../components/routing/LocalizedNavigate';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
+import { LocalizedNavigate } from '@sudobility/characterbuilder_ui';
 import { LoginPage as LoginPageComponent } from '@sudobility/building_blocks';
 import { APP_NAME } from '../config';
 import { useAuth } from '../auth/AuthContext';

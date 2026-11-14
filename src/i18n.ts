@@ -7,7 +7,7 @@ import {
   DEFAULT_LANGUAGE,
   LANGUAGE_STORAGE_KEY,
   isLanguageSupported,
-} from './config/languages';
+} from '@sudobility/characterbuilder_ui';
 
 // All languages — English included — are served from `public/locales/<lng>/<ns>.json`
 // and loaded on demand by the HTTP backend (the sudojo_app approach). English is the

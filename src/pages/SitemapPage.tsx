@@ -1,7 +1,7 @@
 import { AppSitemapPage, type AppSitemapPageProps } from '@sudobility/building_blocks';
 import { APP_NAME } from '../config';
-import { LANGUAGE_CONFIGS } from '../config/languages';
-import { LinkWrapper } from '../components/layout/LinkWrapper';
+import { LANGUAGE_CONFIGS } from '@sudobility/characterbuilder_ui';
+import { LinkWrapper } from '@sudobility/characterbuilder_ui';
 
 /**
  * Public "Sitemap" page, built on `building_blocks`' `AppSitemapPage`. Lists

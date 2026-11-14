@@ -10,7 +10,7 @@ import { SignInProvider } from './auth/SignInContext';
 import { ClientBridge } from './ClientBridge';
 import { ConsumablesBridge } from './features/credits/ConsumablesBridge';
 import { PaywallDialog } from './features/credits/PaywallDialog';
-import { ErrorBoundary } from './components/shell/ErrorBoundary';
+import { ErrorBoundary } from '@sudobility/characterbuilder_ui';
 import { seoHeadConfig } from './seoHead';
 import { installTheme } from './theme';
 import './i18n';

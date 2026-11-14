@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
 import { MasterListItem } from '@sudobility/components';
-import { MasterDetailPage } from '../components/layout/MasterDetailPage';
+import { MasterDetailPage } from '@sudobility/building_blocks';
 import { Button, Card, CardContent, Heading, Text } from '../ui';
 import { useAuth } from '../auth/AuthContext';
 import { CreditsPage } from '../features/credits/CreditsPage';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
-import { LocalizedLink } from '../components/layout/LocalizedLink';
+import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
+import { LocalizedLink } from '@sudobility/characterbuilder_ui';
 import {
   useCharacter,
   useCharacterBuilderClient,
@@ -10,10 +10,10 @@ import {
   useUpdateCharacterImageNote,
 } from '@sudobility/characterbuilder_client';
 import type { FaceSpec } from '@sudobility/characterbuilder_types';
-import { VariationPanel } from '../components/VariationPanel';
-import { FullBodyPanel } from '../components/FullBodyPanel';
-import { BreadcrumbBuilder } from '../utils/BreadcrumbBuilder';
-import { downloadImage } from '../lib/download';
+import { VariationPanel } from '@sudobility/characterbuilder_ui';
+import { FullBodyPanel } from '@sudobility/characterbuilder_ui';
+import { BreadcrumbBuilder } from '@sudobility/characterbuilder_ui';
+import { downloadImage } from '@sudobility/characterbuilder_ui';
 import { Button, Card, CardContent, Heading, Input, Label, Spinner, Text } from '../ui';
 
 /**
