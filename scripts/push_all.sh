@@ -31,18 +31,19 @@ PROJECTS=(
     "../characterbuilder_types:30"
     # Network client + react-query hooks. Depends on characterbuilder_types.
     # Publishes to npm (restricted).
+    # The REST API service (Hono + Postgres + ShapeShyft). Depends on
+    # characterbuilder_types. `skip-npm-publish: true` in CI — tests/build only.
+    "../characterbuilder_api:0"
     "../characterbuilder_client:30"
     # Frontend business logic (draft store, form metadata). Depends on
     # characterbuilder_client and characterbuilder_types. Publishes to npm
     # (restricted).
     "../characterbuilder_lib:30"
-    # The REST API service (Hono + Postgres + ShapeShyft). Depends on
-    # characterbuilder_types. `skip-npm-publish: true` in CI — tests/build only.
-    "../characterbuilder_api:0"
     # The web app itself, last: it depends on characterbuilder_client,
     # characterbuilder_lib and characterbuilder_types, and nothing depends on
     # it. No CI workflow (kept out of the CI rollout on purpose) — this entry
     # exists to version, commit and push it like every other repo.
+    "../characterbuilder_ui:30"
     "../characterbuilder_app:0"
 )
 
