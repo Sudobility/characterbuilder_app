@@ -32,7 +32,7 @@ export function DashboardPage() {
 
       {isLoading ? (
         <Spinner size="large" />
-      ) : !data || data.items.length === 0 ? (
+      ) : !data?.data || data.data.length === 0 ? (
         <Card>
           <CardContent>
             <Text as="p" className="text-theme-text-secondary">
@@ -42,7 +42,7 @@ export function DashboardPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.items.map((c) => (
+          {data.data.map((c) => (
             <Card key={c.id}>
               <CardHeader>
                 <Heading level={3} size="lg">

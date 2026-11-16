@@ -320,7 +320,7 @@ export function EditorPage() {
         onError: (e) =>
           setError(
             isInsufficientCredits(e)
-              ? `Not enough credits (need ${e.required}, have ${e.balance}).`
+              ? `Not enough credits for this render.`
               : e instanceof Error
                 ? e.message
                 : 'Generation failed'

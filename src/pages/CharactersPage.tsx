@@ -15,7 +15,7 @@ export function CharactersPage() {
   const { navigate } = useLocalizedNavigate();
 
   const named = useMemo(
-    () => (data?.items ?? []).filter((c) => !!c.name),
+    () => (data?.data ?? []).filter((c) => !!c.name),
     [data]
   );
 

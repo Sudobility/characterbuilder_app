@@ -53,7 +53,7 @@ export function SheetStudioPage() {
 
   // Deep-linked from a character (/sheets/:characterId): preselect it and name
   // the breadcrumb after the character rather than the raw id.
-  const charName = chars?.items.find((c) => c.id === routeCharId)?.name;
+  const charName = chars?.data?.find((c) => c.id === routeCharId)?.name;
   useEffect(() => {
     if (routeCharId) setCharacterId(routeCharId);
   }, [routeCharId]);
@@ -88,7 +88,7 @@ export function SheetStudioPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NO_CHARACTER}>Not linked</SelectItem>
-                {chars?.items.map((c) => (
+                {chars?.data?.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>
@@ -377,7 +377,7 @@ function useStageJob(): StageJob {
       onError: (e) =>
         setError(
           isInsufficientCredits(e)
-            ? `Not enough credits (need ${e.required}, have ${e.balance}).`
+            ? `Not enough credits for this render.`
             : e instanceof Error
               ? e.message
               : 'Generation failed'
@@ -488,7 +488,7 @@ function GalleryPicker({
   const { data } = useGenerations();
   const images = useMemo(
     () =>
-      (data?.items ?? [])
+      (data?.data ?? [])
         .flatMap((g) => g.images)
         .filter((img) => img.id)
         .slice(0, 12),

@@ -46,7 +46,7 @@ export function JobHistoryPage() {
   const { navigate } = useLocalizedNavigate();
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
-    chars?.items.forEach((c) => {
+    chars?.data?.forEach((c) => {
       if (c.name) m.set(c.id, c.name);
     });
     return m;
@@ -54,7 +54,7 @@ export function JobHistoryPage() {
   const openImage = (imageId: string, spec: FaceSpec | undefined) =>
     navigate(`/portrait/${imageId}`, { state: { spec } });
 
-  const items = data?.items ?? [];
+  const items = data?.data ?? [];
 
   return (
     <div className="flex flex-col gap-4">

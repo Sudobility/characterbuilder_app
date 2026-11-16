@@ -36,7 +36,7 @@ export function GalleryPage({
   // Character name by character id, so a headshot can be badged with its name.
   const nameByCharId = useMemo(() => {
     const m = new Map<string, string>();
-    chars?.items.forEach((c) => {
+    chars?.data?.forEach((c) => {
       if (c.name) m.set(c.id, c.name);
     });
     return m;
@@ -44,7 +44,7 @@ export function GalleryPage({
 
   const images = useMemo<GalleryImage[]>(() => {
     const out: GalleryImage[] = [];
-    for (const g of data?.items ?? []) {
+    for (const g of data?.data ?? []) {
       for (const img of g.images) {
         const imgCharId = img.characterId ?? null;
         if (characterId && imgCharId !== characterId) continue;
