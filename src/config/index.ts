@@ -16,6 +16,14 @@ export const COPYRIGHT_YEAR = '2025-2026';
 
 export const AUTH_TEST_MODE = import.meta.env.VITE_AUTH_TEST_MODE === '1';
 
+/**
+ * Show the organization/team workspace UI (workspace switcher, members,
+ * invitations). Off by default: every user still has a personal entity that
+ * owns their credits, and the API-keys section is shown regardless — the flag
+ * only gates the multi-workspace/team surface. Mirrors music's VITE_SHOW_ENTITIES.
+ */
+export const SHOW_ENTITIES = import.meta.env.VITE_SHOW_ENTITIES === 'true';
+
 export const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? '0.1.0';
 
 export const CLIENT_TAG = `web/${APP_VERSION}`;

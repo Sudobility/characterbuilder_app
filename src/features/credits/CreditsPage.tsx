@@ -7,6 +7,7 @@
  */
 import { Card, CardContent, Heading, Text } from '../../ui';
 import { CreditStore } from './CreditStore';
+import { CreditCouponsPage } from './CreditCouponsPage';
 import { CreditsHistory } from './CreditsHistory';
 
 export function CreditsPage() {
@@ -27,6 +28,8 @@ export function CreditsPage() {
       </Card>
 
       <CreditStore />
+
+      <CreditCouponsPage />
 
       <CreditsHistory />
     </div>

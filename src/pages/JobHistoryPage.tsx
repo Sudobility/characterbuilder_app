@@ -4,6 +4,7 @@ import { LocalizedLink } from '@sudobility/characterbuilder_ui';
 import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
 import type { FaceSpec, Generation } from '@sudobility/characterbuilder_types';
 import { ImageTile } from '@sudobility/characterbuilder_ui';
+import { LazyFlatList } from '@sudobility/components';
 import { Badge, Button, Card, CardContent, Heading, Spinner, Text } from '../ui';
 
 type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
@@ -74,16 +75,22 @@ export function JobHistoryPage() {
           No generations yet. Press “New character” to design and generate one.
         </Text>
       ) : (
-        <div className="flex flex-col gap-3">
-          {items.map((g) => (
+        <LazyFlatList
+          items={items}
+          keyExtractor={(g) => g.id}
+          className="flex flex-col gap-3"
+          estimatedItemHeight={120}
+          renderPlaceholder={() => (
+            <div className="h-28 animate-pulse rounded-lg border border-theme-border bg-theme-bg-secondary" />
+          )}
+          renderItem={(g) => (
             <JobRow
-              key={g.id}
               g={g}
               characterName={g.characterId ? (nameById.get(g.characterId) ?? null) : null}
               onImage={openImage}
             />
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );

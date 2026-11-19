@@ -13,6 +13,7 @@ import {
   type Demographics,
   type FaceSpec,
 } from '@sudobility/characterbuilder_types';
+import { usePaywall } from '../features/credits/PaywallDialog';
 import { AncestryPicker, pathForAncestry, pathLabel } from '@sudobility/characterbuilder_ui';
 import { ImageTile } from '@sudobility/characterbuilder_ui';
 import { fileToDownscaledDataUrl } from '@sudobility/characterbuilder_ui';
@@ -120,6 +121,7 @@ export function SimpleGeneratePage() {
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const openPaywall = usePaywall();
 
   const describe = useDescribe();
   const analyze = useAnalyze();
@@ -241,14 +243,14 @@ export function SimpleGeneratePage() {
       },
       {
         onSuccess: (g) => setJobId(g.id),
-        onError: (e) =>
-          setError(
-            isInsufficientCredits(e)
-              ? `Not enough credits for this render.`
-              : e instanceof Error
-                ? e.message
-                : 'Generation failed'
-          ),
+        onError: (e) => {
+          if (isInsufficientCredits(e)) {
+            setError(null);
+            openPaywall();
+            return;
+          }
+          setError(e instanceof Error ? e.message : 'Generation failed');
+        },
       }
     );
   };

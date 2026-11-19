@@ -26,6 +26,7 @@ import {
   type FaceSpec,
 } from '@sudobility/characterbuilder_types';
 import { isInsufficientCredits } from '@sudobility/characterbuilder_client';
+import { usePaywall } from '../features/credits/PaywallDialog';
 import { FaceSpecGroupCard } from '@sudobility/characterbuilder_ui';
 import { AncestryPicker, pathLabel } from '@sudobility/characterbuilder_ui';
 import { ImageTile } from '@sudobility/characterbuilder_ui';
@@ -154,6 +155,7 @@ export function EditorPage() {
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const openPaywall = usePaywall();
   const [health, setHealth] = useState<string>('auto');
   // Hierarchical ancestry selection (node ids from the taxonomy root down). An empty
   // path = "any". `mix` adds a second heritage for a half-and-half person.
@@ -317,14 +319,14 @@ export function EditorPage() {
       },
       {
         onSuccess: (g) => setJobId(g.id),
-        onError: (e) =>
-          setError(
-            isInsufficientCredits(e)
-              ? `Not enough credits for this render.`
-              : e instanceof Error
-                ? e.message
-                : 'Generation failed'
-          ),
+        onError: (e) => {
+          if (isInsufficientCredits(e)) {
+            setError(null);
+            openPaywall();
+            return;
+          }
+          setError(e instanceof Error ? e.message : 'Generation failed');
+        },
       }
     );
   };

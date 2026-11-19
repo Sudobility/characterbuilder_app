@@ -23,6 +23,7 @@ import {
   isConsumablesInitialized,
   type ConsumablesAdapter,
 } from '@sudobility/consumables_client';
+import { EntityClient } from '@sudobility/entity_client';
 import {
   configureConsumablesWebAdapter,
   createConsumablesWebAdapter,
@@ -125,11 +126,15 @@ class AuthenticatedNetworkClient implements NetworkClient {
     options?: NetworkRequestOptions | null
   ): Promise<NetworkRequestOptions> {
     const token = await this.getToken();
+    // X-Entity-Id selects the active workspace server-side; absent it, the API
+    // falls back to the user's personal entity.
+    const entityId = getActiveEntityId();
     return {
       ...options,
       headers: {
         ...(options?.headers ?? {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(entityId ? { 'X-Entity-Id': entityId } : {}),
       },
     };
   }
@@ -187,6 +192,22 @@ function unconfiguredPurchasing(): ConsumablesAdapter {
 }
 
 let apiClient: ConsumablesApiClient | null = null;
+let entityClient: EntityClient | null = null;
+
+/**
+ * The currently-selected entity (workspace). Injected as `X-Entity-Id` on every
+ * authenticated request; null falls back to the personal entity server-side.
+ * Kept in a module var (not React state) so the network client can read it per
+ * request. `EntitySelectionBridge` keeps it in sync with the entity_client
+ * context.
+ */
+let activeEntityId: string | null = null;
+export function setActiveEntityId(id: string | null): void {
+  activeEntityId = id;
+}
+export function getActiveEntityId(): string | null {
+  return activeEntityId;
+}
 
 /** The shared API client, available to coupon UIs. Call after initialization. */
 export function getConsumablesApiClient(): ConsumablesApiClient {
@@ -196,7 +217,15 @@ export function getConsumablesApiClient(): ConsumablesApiClient {
   return apiClient;
 }
 
-/** Initialize the consumables singleton once, bound to the current auth token. */
+/** The shared entity (workspace) client. Call after initialization. */
+export function getEntityClient(): EntityClient {
+  if (!entityClient) {
+    throw new Error('Entities not initialized — mount <ConsumablesBridge>.');
+  }
+  return entityClient;
+}
+
+/** Initialize the consumables + entity singletons once, bound to the auth token. */
 export function initConsumables(getToken: () => Promise<string | null>): void {
   if (isConsumablesInitialized()) return;
   const networkClient = new AuthenticatedNetworkClient(
@@ -204,6 +233,9 @@ export function initConsumables(getToken: () => Promise<string | null>): void {
     getToken
   );
   apiClient = new ConsumablesApiClient({ baseUrl: API_URL, networkClient });
+  // Routes are served under /api/v1; the consumables client prefixes its own
+  // paths, the entity client is given the full base.
+  entityClient = new EntityClient({ baseUrl: `${API_URL}/api/v1`, networkClient });
   if (REVENUECAT_WEB_KEY) configureConsumablesWebAdapter(REVENUECAT_WEB_KEY);
   initializeConsumables({
     adapter: REVENUECAT_WEB_KEY

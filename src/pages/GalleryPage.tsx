@@ -3,6 +3,7 @@ import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
 import { useCharacters, useGenerations } from '@sudobility/characterbuilder_client';
 import type { FaceSpec } from '@sudobility/characterbuilder_types';
 import { ImageTile } from '@sudobility/characterbuilder_ui';
+import { LazyFlatList } from '@sudobility/components';
 import { Button, Heading, Spinner, Text } from '../ui';
 
 interface GalleryImage {
@@ -82,20 +83,23 @@ export function GalleryPage({
           {characterId ? 'No images for this character yet.' : 'No generated images yet.'}
         </Text>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {images.map((img) => {
+        <LazyFlatList
+          items={images}
+          keyExtractor={(img) => img.imageId}
+          className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+          reserveClassName="aspect-[3/4]"
+          renderItem={(img) => {
             const name = img.characterId ? nameByCharId.get(img.characterId) : undefined;
             return (
               <ImageTile
-                key={img.imageId}
                 imageId={img.imageId}
                 alt={name ?? img.role ?? 'generation'}
                 label={name ?? img.role ?? undefined}
                 onClick={() => open(img)}
               />
             );
-          })}
-        </div>
+          }}
+        />
       )}
     </div>
   );

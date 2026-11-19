@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useLocalizedNavigate } from '@sudobility/characterbuilder_ui';
 import { useCharacters } from '@sudobility/characterbuilder_client';
 import { ImageTile } from '@sudobility/characterbuilder_ui';
+import { LazyFlatList } from '@sudobility/components';
 import { Button, Heading, Spinner, Text } from '../ui';
 
 /**
@@ -39,10 +40,19 @@ export function CharactersPage() {
           No named characters yet — generate some images and name the ones you like.
         </Text>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {named.map((c) =>
+        <LazyFlatList
+          items={named}
+          keyExtractor={(c) => c.id}
+          className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+          renderPlaceholder={() => (
+            <div className="flex flex-col gap-1">
+              <div className="aspect-[3/4] animate-pulse rounded-lg bg-theme-bg-secondary" />
+              <div className="h-4 w-2/3 animate-pulse rounded bg-theme-bg-secondary" />
+            </div>
+          )}
+          renderItem={(c) =>
             c.previewImageId ? (
-              <div key={c.id} className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1">
                 <ImageTile
                   imageId={c.previewImageId}
                   alt={c.name ?? 'character'}
@@ -53,19 +63,35 @@ export function CharactersPage() {
                 </Text>
               </div>
             ) : (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => openCharacter(c.id)}
-                className="flex aspect-[3/4] flex-col items-center justify-center rounded-lg border border-theme-border bg-theme-bg-secondary p-3 text-center"
-              >
-                <Text as="span" size="sm" className="font-medium">
+              <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => openCharacter(c.id)}
+                  aria-label={c.name ?? 'character'}
+                  className="flex aspect-[3/4] w-full items-center justify-center rounded-lg border border-theme-border bg-theme-bg-secondary text-theme-text-secondary"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="h-8 w-8 opacity-60"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z"
+                    />
+                  </svg>
+                </button>
+                <Text as="span" size="sm" className="truncate font-medium">
                   {c.name}
                 </Text>
-              </button>
+              </div>
             )
-          )}
-        </div>
+          }
+        />
       )}
     </div>
   );

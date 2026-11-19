@@ -5,8 +5,13 @@ import { MasterListItem } from '@sudobility/components';
 import { MasterDetailPage } from '@sudobility/building_blocks';
 import { Button, Card, CardContent, Heading, Text } from '../ui';
 import { useAuth } from '../auth/AuthContext';
+import { SHOW_ENTITIES } from '../config';
 import { CreditsPage } from '../features/credits/CreditsPage';
 import { CreditBadge } from '../features/credits/CreditBadge';
+import {
+  ApiKeysSection,
+  WorkspacesSection,
+} from '../features/entities/EntitiesDashboard';
 import { GalleryPage } from './GalleryPage';
 import { CharactersPage } from './CharactersPage';
 import { JobHistoryPage } from './JobHistoryPage';
@@ -18,18 +23,26 @@ import { JobHistoryPage } from './JobHistoryPage';
  * (`/characters/:id`, `/new`) and sheet studio remain full pages, reached from
  * the Gallery/History "New character" action and the job → character links.
  */
-const SECTIONS = [
+const ALL_SECTIONS = [
   { id: 'characters', label: 'Characters', description: "Faces you've named" },
   { id: 'gallery', label: 'Gallery', description: 'Every image you have generated' },
   { id: 'history', label: 'Job history', description: 'Generation jobs and their status' },
   { id: 'credits', label: 'Credits', description: 'Balance and top-ups' },
+  { id: 'workspaces', label: 'Workspaces', description: 'Organizations you belong to', workspaceOnly: true },
+  { id: 'api-keys', label: 'API keys', description: 'Programmatic access' },
   { id: 'account', label: 'Account', description: 'Your profile and sign-out' },
 ] as const;
 
-type SectionId = (typeof SECTIONS)[number]['id'];
+type SectionId = (typeof ALL_SECTIONS)[number]['id'];
+
+// Workspace/org sections are gated behind SHOW_ENTITIES; everything else (incl.
+// API keys, which default to the personal entity) is always shown.
+const SECTIONS = ALL_SECTIONS.filter(
+  (s) => SHOW_ENTITIES || !('workspaceOnly' in s && s.workspaceOnly)
+);
 
 function isSection(v: string | undefined): v is SectionId {
-  return SECTIONS.some((s) => s.id === v);
+  return ALL_SECTIONS.some((s) => s.id === v);
 }
 
 export function UserDashboardPage() {
@@ -84,6 +97,10 @@ function SectionDetail({ section }: { section: SectionId }) {
       return <JobHistoryPage />;
     case 'credits':
       return <CreditsPage />;
+    case 'workspaces':
+      return <WorkspacesSection />;
+    case 'api-keys':
+      return <ApiKeysSection />;
     case 'account':
       return <AccountSection />;
     case 'gallery':

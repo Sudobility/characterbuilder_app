@@ -9,6 +9,7 @@ import { AuthProvider } from './auth/AuthContext';
 import { SignInProvider } from './auth/SignInContext';
 import { ClientBridge } from './ClientBridge';
 import { ConsumablesBridge } from './features/credits/ConsumablesBridge';
+import { EntityBridge } from './features/entities/EntityBridge';
 import { PaywallDialog } from './features/credits/PaywallDialog';
 import { ErrorBoundary } from '@sudobility/characterbuilder_ui';
 import { seoHeadConfig } from './seoHead';
@@ -29,6 +30,8 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           {/* Initializes the shared consumables stack and follows the user. */}
           <ConsumablesBridge>
+            {/* Provides the entity (workspace) context + keeps X-Entity-Id in sync. */}
+            <EntityBridge>
             {/* The one sign-in modal, opened over whatever page needs an account (RequireSignIn). */}
             <SignInProvider>
               <ClientBridge>
@@ -44,6 +47,7 @@ createRoot(document.getElementById('root')!).render(
                 </DraftStoreProvider>
               </ClientBridge>
             </SignInProvider>
+            </EntityBridge>
           </ConsumablesBridge>
         </AuthProvider>
       </QueryClientProvider>

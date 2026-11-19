@@ -14,6 +14,7 @@ import {
   type Generation,
   type SheetRequestInput,
 } from '@sudobility/characterbuilder_types';
+import { usePaywall } from '../features/credits/PaywallDialog';
 import { ImageTile } from '@sudobility/characterbuilder_ui';
 import { BreadcrumbBuilder } from '@sudobility/characterbuilder_ui';
 import {
@@ -367,6 +368,7 @@ function useStageJob(): StageJob {
   const mutation = useGenerateSheet();
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const openPaywall = usePaywall();
   const { data: job } = useGeneration(jobId ?? undefined);
 
   const start = (req: SheetRequestInput) => {
@@ -374,14 +376,14 @@ function useStageJob(): StageJob {
     setJobId(null);
     mutation.mutate(req, {
       onSuccess: (g) => setJobId(g.id),
-      onError: (e) =>
-        setError(
-          isInsufficientCredits(e)
-            ? `Not enough credits for this render.`
-            : e instanceof Error
-              ? e.message
-              : 'Generation failed'
-        ),
+      onError: (e) => {
+        if (isInsufficientCredits(e)) {
+          setError(null);
+          openPaywall();
+          return;
+        }
+        setError(e instanceof Error ? e.message : 'Generation failed');
+      },
     });
   };
 
